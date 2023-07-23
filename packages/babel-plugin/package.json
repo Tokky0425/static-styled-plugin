@@ -1,0 +1,20 @@
+{
+  "name": "@static-styled-plugin/babel-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/core": "7.22.9",
+    "@static-styled-plugin/style-registry": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/babel__core": "7.20.1"
+  }
+}

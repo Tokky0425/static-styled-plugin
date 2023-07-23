@@ -1,0 +1,20 @@
+{
+  "name": "@static-styled-plugin/vite-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@static-styled-plugin/babel-plugin": "workspace:^",
+    "@static-styled-plugin/style-registry": "workspace:^"
+  },
+  "devDependencies": {
+    "vite": "4.4.6"
+  }
+}

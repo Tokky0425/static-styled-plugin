@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "lib": ["esnext", "dom"],
+    "esModuleInterop": true,
+    "strict": true,
+    "jsx": "react",
+    "baseUrl": "./",
+    "typeRoots": ["./src/types", "node_modules/@types"],
+//    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "stripInternal": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationDir": "dist",
+    "paths": {
+      "@static-styled-plugin/*": ["./packages/*/src"]
+    },
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "packages/**/dist/**"]
+}

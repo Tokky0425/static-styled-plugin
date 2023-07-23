@@ -1,0 +1,26 @@
+{
+  "name": "2307_static-styled-plugin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./packages/**\" dev",
+    "babel-plugin": "pnpm -F \"babel-plugin\"",
+    "style-registry": "pnpm -F \"style-registry\"",
+    "vite-plugin": "pnpm -F \"vite-plugin\""
+  },
+  "engines": {
+    "pnpm": "8.6.7",
+    "npm": "please_use_pnpm_instead"
+  },
+  "packageManager": "pnpm@8.6.7",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "5.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "20.4.3"
+  }
+}

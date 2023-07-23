@@ -1,0 +1,1 @@
+export { styleRegistry } from './styleRegistry'
