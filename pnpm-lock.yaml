@@ -112,19 +112,6 @@ importers:
         specifier: 7.20.1
         version: 7.20.1
 
-  packages/core:
-    dependencies:
-      '@babel/core':
-        specifier: 7.22.9
-        version: 7.22.9
-      '@static-styled-plugin/style-registry':
-        specifier: workspace:^
-        version: link:../style-registry
-    devDependencies:
-      '@types/babel__core':
-        specifier: 7.20.1
-        version: 7.20.1
-
   packages/style-registry: {}
 
   packages/vite-plugin:
@@ -139,6 +126,19 @@ importers:
       vite:
         specifier: 4.4.6
         version: 4.4.6(@types/node@20.4.3)
+
+  packages/webpack-plugin:
+    dependencies:
+      '@static-styled-plugin/babel-plugin':
+        specifier: workspace:^
+        version: link:../babel-plugin
+      '@static-styled-plugin/style-registry':
+        specifier: workspace:^
+        version: link:../style-registry
+    devDependencies:
+      webpack:
+        specifier: 5.88.2
+        version: 5.88.2(webpack-cli@5.1.4)
 
 packages:
 

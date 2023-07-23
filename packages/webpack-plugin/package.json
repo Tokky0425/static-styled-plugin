@@ -1,5 +1,5 @@
 {
-  "name": "@static-styled-plugin/vite-plugin",
+  "name": "@static-styled-plugin/webpack-plugin",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
@@ -15,9 +15,9 @@
     "@static-styled-plugin/style-registry": "workspace:^"
   },
   "devDependencies": {
-    "vite": "4.4.6"
+    "webpack": "5.88.2"
   },
   "peerDependencies": {
-    "vite": "^4"
+    "webpack": "^5"
   }
 }
