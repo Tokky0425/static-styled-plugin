@@ -3,7 +3,7 @@ import { Plugin, ResolvedConfig } from 'vite'
 import { transform } from '@static-styled-plugin/babel-plugin'
 import { styleRegistry } from "@static-styled-plugin/style-registry"
 
-export function staticCSSPlugin(): Plugin {
+export function staticStyledPlugin(): Plugin {
   const targetExtensionRegex = new RegExp(/\.[jt]sx?$/)
   let command: ResolvedConfig['command']
   const cssMap: {
