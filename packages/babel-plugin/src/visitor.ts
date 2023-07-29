@@ -60,12 +60,12 @@ function processTaggedTemplateExpression(programPath: NodePath<types.Program>, t
       const classNameHash = generateHash(cssString)
       const className = `static-styled-${classNameHash}`
       const newAst = template.expression.ast(`
-        (props) => {
+        (props: any) => {
           const inheritedClassName = props.className ?? '';
           const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
           return <${tagName} { ...props } className={joinedClassName} />;
         }
-      `, { plugins: ['jsx'] })
+      `, { plugins: ['jsx', 'typescript'] })
       path.replaceWith(newAst)
       const componentId = generateHash(String(identifier))
       identifier += 1
