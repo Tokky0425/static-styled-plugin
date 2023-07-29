@@ -59,13 +59,14 @@ function processTaggedTemplateExpression(programPath: NodePath<types.Program>, t
       const cssString = quasi.value.raw.replace(/\s+/g, " ").trim()
       const classNameHash = generateHash(cssString)
       const className = `static-styled-${classNameHash}`
-      const createElementAst = template.expression.ast(`
+      const newAst = template.expression.ast(`
         (props) => {
           const inheritedClassName = props.className ?? '';
-          return React.createElement("${tagName}", { ...props, className: \`\${inheritedClassName} ${className}\`.trim() });
+          const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
+          return <${tagName} { ...props } className={joinedClassName} />;
         }
-      `)
-      path.replaceWith(createElementAst)
+      `, { plugins: ['jsx'] })
+      path.replaceWith(newAst)
       const componentId = generateHash(String(identifier))
       identifier += 1
       styleRegistry.addRule(componentId, classNameHash, cssString)
