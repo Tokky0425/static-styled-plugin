@@ -12,6 +12,7 @@ export function staticStyledPlugin(): Plugin {
 
   return {
     name: "static-styled",
+    enforce: "pre",
     configResolved(config) {
       command = config.command
     },
