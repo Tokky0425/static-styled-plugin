@@ -12,9 +12,11 @@
   "license": "ISC",
   "dependencies": {
     "@static-styled-plugin/babel-plugin": "workspace:^",
-    "@static-styled-plugin/style-registry": "workspace:^"
+    "@static-styled-plugin/style-registry": "workspace:^",
+    "fs-extra": "11.1.1"
   },
   "devDependencies": {
+    "@types/fs-extra": "11.0.1",
     "webpack": "5.88.2"
   },
   "peerDependencies": {
