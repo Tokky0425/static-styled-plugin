@@ -1,5 +1,7 @@
+import { ReactNode } from 'react'
 import styled from 'styled-components'
-export function App() {
+
+export function App(): ReactNode {
   return <Title>Hello</Title>
 }
 
