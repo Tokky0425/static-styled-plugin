@@ -5,7 +5,6 @@ import { styleRegistry } from "@static-styled-plugin/style-registry"
 
 export function staticStyledPlugin(): Plugin {
   const targetExtensionRegex = new RegExp(/\.[jt]sx?$/)
-  let command: ResolvedConfig['command']
   const cssMap: {
     [cssAbsolutePath: string]: string
   } = {}
@@ -13,9 +12,6 @@ export function staticStyledPlugin(): Plugin {
   return {
     name: "static-styled",
     enforce: "pre",
-    configResolved(config) {
-      command = config.command
-    },
     async transform(sourceCode, id) {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
@@ -25,15 +21,9 @@ export function staticStyledPlugin(): Plugin {
       if (!cssString) return code
       styleRegistry.reset()
 
-      if (command === 'serve') {
-        const rootRelativeFilePath = path.relative(process.cwd() + '/src', id)
-        const cssRelativeFilePath = path.normalize(`${rootRelativeFilePath.replace(targetExtensionRegex, "")}.css`)
-        return injectDevelopmentCSS(cssString, cssRelativeFilePath) + code
-      } else if (command === 'build') {
-        const cssAbsolutePath = path.normalize(`${id.replace(targetExtensionRegex, "")}.css`)
-        cssMap[cssAbsolutePath] = cssString
-        return injectProductionCSS(cssAbsolutePath) + code
-      }
+      const cssAbsolutePath = path.normalize(`${id.replace(targetExtensionRegex, "")}.css`)
+      cssMap[cssAbsolutePath] = cssString
+      return `import ${JSON.stringify(cssAbsolutePath)};\n${code}`
     },
     resolveId(source) {
       return cssMap[source] ? source : undefined
@@ -42,27 +32,4 @@ export function staticStyledPlugin(): Plugin {
       return cssMap[filePath] ? cssMap[filePath] : undefined
     }
   }
-}
-
-const injectDevelopmentCSS = (cssString: string, cssFilePath: string) => {
-  return `
-  (function() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const staticStyleEleId = 'static-styled_' + ${JSON.stringify(cssFilePath)};
-    let staticStyleEle = document.getElementById(staticStyleEleId);
-
-    if (!staticStyleEle) {
-      staticStyleEle = document.createElement('style');
-      staticStyleEle.id = staticStyleEleId;
-      document.head.appendChild(staticStyleEle);
-    }
-    staticStyleEle.textContent = ${JSON.stringify(cssString)};
-  })();
-  `
-}
-
-const injectProductionCSS = (cssFilePath: string) => {
-  return `import ${JSON.stringify(cssFilePath)};\n`
 }
