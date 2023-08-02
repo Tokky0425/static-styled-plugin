@@ -1,7 +1,6 @@
 import { transformSync, types, template as coreTemplate } from "@babel/core"
 import type { PluginObj } from "@babel/core"
 import { visitor } from './visitor'
-export { generateHash } from './generateHash'
 
 export function transform(sourceCode: string) {
   const result = transformSync(sourceCode, {

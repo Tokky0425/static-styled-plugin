@@ -1,11 +1,13 @@
-import fs from 'fs-extra'
-import path from 'path'
 import type { LoaderDefinitionFunction } from 'webpack'
-
-import { transform, generateHash } from "@static-styled-plugin/babel-plugin"
+import { transform } from "@static-styled-plugin/babel-plugin"
 import { styleRegistry } from "@static-styled-plugin/style-registry"
 
+const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
+const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
+
 const loader: LoaderDefinitionFunction = function(sourceCode: string) {
+  // TODO transform should be async function
+  // c.f. https://webpack.js.org/api/loaders/#asynchronous-loaders
   const { code } = transform(sourceCode)
   if (!code) return ''
 
@@ -16,12 +18,18 @@ const loader: LoaderDefinitionFunction = function(sourceCode: string) {
   const outputPath: string | undefined = this._compilation?.options.output.path
   if (!outputPath) return code
 
-  const hash = generateHash(this.resourcePath)
-  const cssFilePath = path.resolve(outputPath, 'static-styled', `${hash}.css`)
+  const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
+    sourceCode: cssString
+  })}`
 
-  fs.outputFileSync(cssFilePath, cssString)
+  const importCSSIdentifier = `import ${JSON.stringify(
+    this.utils.contextify(
+      this.context || this.rootContext,
+      `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
+  )};`
 
-  return `import "${cssFilePath}";\n${code}`
+  this.callback(null, `${importCSSIdentifier}\n${code}`)
+  return
 }
 
 export default loader
