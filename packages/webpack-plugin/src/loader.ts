@@ -6,30 +6,40 @@ const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 
 const loader: LoaderDefinitionFunction = function(sourceCode: string) {
-  // TODO transform should be async function
   // c.f. https://webpack.js.org/api/loaders/#asynchronous-loaders
-  const { code } = transform(sourceCode)
-  if (!code) return ''
+  const callback = this.async();
+  transform(sourceCode).then((result) => {
+    const code = result?.code
+    if (!code) {
+      callback(null, sourceCode)
+      return
+    }
 
-  const cssString = styleRegistry.getRule()
-  if (!cssString) return code
-  styleRegistry.reset()
+    const cssString = styleRegistry.getRule()
+    if (!cssString) {
+      callback(null, code)
+      return
+    }
+    styleRegistry.reset()
 
-  const outputPath: string | undefined = this._compilation?.options.output.path
-  if (!outputPath) return code
+    const outputPath: string | undefined = this._compilation?.options.output.path
+    if (!outputPath) {
+      callback(null, code)
+      return
+    }
 
-  const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
-    sourceCode: cssString
-  })}`
+    const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
+      sourceCode: cssString
+    })}`
 
-  const importCSSIdentifier = `import ${JSON.stringify(
-    this.utils.contextify(
-      this.context || this.rootContext,
-      `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
-  )};`
+    const importCSSIdentifier = `import ${JSON.stringify(
+      this.utils.contextify(
+        this.context || this.rootContext,
+        `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
+    )};`
 
-  this.callback(null, `${importCSSIdentifier}\n${code}`)
-  return
+    callback(null, `${importCSSIdentifier}\n${code}`)
+  })
 }
 
 export default loader

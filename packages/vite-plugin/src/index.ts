@@ -16,7 +16,10 @@ export function staticStyledPlugin(): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const { code } = await transform(sourceCode)
+      const result = await transform(sourceCode)
+      const code = result?.code
+      if (!code) return sourceCode
+
       const cssString = styleRegistry.getRule()
       if (!cssString) return code
       styleRegistry.reset()

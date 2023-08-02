@@ -1,13 +1,13 @@
-import { transformSync, types, template as coreTemplate } from "@babel/core"
+import { transformAsync, types, template as coreTemplate } from "@babel/core"
 import type { PluginObj } from "@babel/core"
 import { visitor } from './visitor'
 
-export function transform(sourceCode: string) {
-  const result = transformSync(sourceCode, {
+export async function transform(sourceCode: string) {
+  const result = await transformAsync(sourceCode, {
     sourceMaps: true,
     plugins: [plugin]
   })
-  return result!
+  return result
 }
 function plugin({ types: t, template }: { types: typeof types, template: typeof coreTemplate }): PluginObj {
   return {
