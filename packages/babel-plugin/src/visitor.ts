@@ -37,26 +37,38 @@ function getStyledFunctionName(programPath: NodePath<types.Program>, t: typeof t
 
 let identifier = 0
 
+function computeTaggedTemplateLiteral(t: typeof types, quasi: ReturnType<typeof types.templateLiteral>) {
+  const expressions = quasi.expressions
+  const quasis = quasi.quasis
+  let result = ''
+
+  for (let i = 0; i < quasis.length; i++) {
+    const q = quasis[i]
+    const e = expressions[i] ?? null
+    result += `${q.value.raw}${t.isArrowFunctionExpression(e) ? '16px' : ''}` // TODO: evaluate by ts-evaluator
+  }
+  return result
+}
+
 function processTaggedTemplateExpression(programPath: NodePath<types.Program>, t: typeof types, template: typeof coreTemplate, styledFunctionName: string) {
   programPath.traverse({
     TaggedTemplateExpression(path) {
       const { node } = path
       /* Only non-extended style (e.g. styled('p')) can be generated statically because level of detail cannot be handled properly when components are extended. */
       let tagName: string | null = ''
-      let quasi: ReturnType<typeof types.templateElement> | null = null
+      let quasi: ReturnType<typeof types.templateLiteral> | null = null
       if (/* e.g. styled('p') */ t.isCallExpression(node.tag) && t.isIdentifier(node.tag.callee) && node.tag.callee.name === styledFunctionName) {
-        quasi = node.quasi.quasis[0]
         const arg = node.tag.arguments[0]
         tagName = t.isStringLiteral(arg) ? arg.value : null
+        quasi = node.quasi
       } else if (/* e.g. styled.p */ t.isMemberExpression(node.tag) && t.isIdentifier(node.tag.object) && node.tag.object.name === styledFunctionName && t.isIdentifier(node.tag.property) && node.tag.object) {
-        quasi = node.quasi.quasis[0]
         tagName = node.tag.property.name
-      } else {
-        return
+        quasi = node.quasi
       }
-      if (!quasi || !tagName || !isHTMLTag(tagName)) return
+      if (!tagName || !quasi || !isHTMLTag(tagName)) return
 
-      const cssString = quasi.value.raw.replace(/\s+/g, " ").trim()
+      const computedTemplateLiteral = computeTaggedTemplateLiteral(t, node.quasi)
+      const cssString = computedTemplateLiteral.replace(/\s+/g, " ").trim()
       const classNameHash = generateHash(cssString)
       const className = `static-styled-${classNameHash}`
       const newAst = template.expression.ast(`
