@@ -6,41 +6,39 @@ const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 
 const loader: LoaderDefinitionFunction = function(sourceCode: string) {
-  // c.f. https://webpack.js.org/api/loaders/#asynchronous-loaders
-  const callback = this.async();
+  const callback = this.callback
   const resourcePath = this.resourcePath
-  transform(sourceCode, resourcePath).then((result) => {
-    const code = result?.code
-    if (!code) {
-      callback(null, sourceCode)
-      return
-    }
+  const result = transform(sourceCode, resourcePath)
+  const code = result?.code
+  if (!code) {
+    callback(null, sourceCode)
+    return
+  }
 
-    const cssString = styleRegistry.getRule()
-    if (!cssString) {
-      callback(null, code)
-      return
-    }
-    styleRegistry.reset()
+  const cssString = styleRegistry.getRule()
+  if (!cssString) {
+    callback(null, code)
+    return
+  }
+  styleRegistry.reset()
 
-    const outputPath: string | undefined = this._compilation?.options.output.path
-    if (!outputPath) {
-      callback(null, code)
-      return
-    }
+  const outputPath: string | undefined = this._compilation?.options.output.path
+  if (!outputPath) {
+    callback(null, code)
+    return
+  }
 
-    const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
-      sourceCode: cssString
-    })}`
+  const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
+    sourceCode: cssString
+  })}`
 
-    const importCSSIdentifier = `import ${JSON.stringify(
-      this.utils.contextify(
-        this.context || this.rootContext,
-        `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
-    )};`
+  const importCSSIdentifier = `import ${JSON.stringify(
+    this.utils.contextify(
+      this.context || this.rootContext,
+      `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
+  )};`
 
-    callback(null, `${importCSSIdentifier}\n${code}`)
-  })
+  callback(null, `${importCSSIdentifier}\n${code}`)
 }
 
 export default loader

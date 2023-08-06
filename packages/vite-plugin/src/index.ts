@@ -12,11 +12,11 @@ export function staticStyledPlugin(): Plugin {
   return {
     name: "static-styled",
     enforce: "pre",
-    async transform(sourceCode, id) {
+    transform(sourceCode, id) {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const result = await transform(sourceCode, id)
+      const result = transform(sourceCode, id)
       const code = result?.code
       if (!code) return sourceCode
 
