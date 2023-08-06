@@ -1,11 +1,13 @@
 import { BabelFileResult } from '@babel/core'
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 import { Node, Project, TaggedTemplateExpression, TemplateLiteral } from 'ts-morph'
+import { evaluate } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 
 let identifier = 0
 const project = new Project()
+const TsEvalError = Symbol('EvalError')
 
 export function transformStyledSyntax(code: string, filePath: string): BabelFileResult {
   const file = project.createSourceFile(filePath, code, { overwrite: true })
@@ -28,13 +30,28 @@ function getTagName(tag: Node, styledFunctionName: string) {
   return tagName
 }
 
-function computeTaggedTemplateLiteral(template: TemplateLiteral) {
+function evaluateTaggedTemplateLiteral(template: TemplateLiteral) {
   let result = ''
+
   if (Node.isNoSubstitutionTemplateLiteral(template)) {
     result = template.getLiteralText()
   } else {
     result = template.getHead().getLiteralText()
-    const templateSpans = template.getTemplateSpans() // TODO
+    const templateSpans = template.getTemplateSpans()
+
+    for (let i = 0; i < templateSpans.length; i++) {
+      const templateSpan = templateSpans[i]
+      const templateSpanExpression = templateSpan.getExpression()
+      if (!Node.isArrowFunction(templateSpanExpression)) return TsEvalError
+
+      const evaluated = evaluate({
+        node: templateSpanExpression.getBody().compilerNode as any,
+      })
+      if (!evaluated.success) return TsEvalError
+
+      const templateMiddle = templateSpan.getLiteral().getLiteralText()
+      result += (evaluated.value + templateMiddle)
+    }
   }
   return result
 }
@@ -43,8 +60,10 @@ function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledF
   const tagName = getTagName(node.getTag(), styledFunctionName)
   if (!tagName || !isHTMLTag(tagName)) return
 
-  const computedTemplateLiteral = computeTaggedTemplateLiteral(node.getTemplate())
-  const cssString = computedTemplateLiteral.replace(/\s+/g, ' ').trim()
+  const result = evaluateTaggedTemplateLiteral(node.getTemplate())
+  if (result === TsEvalError) return
+
+  const cssString = result.replace(/\s+/g, ' ').trim()
   const classNameHash = generateHash(cssString)
   const className = `static-styled-${classNameHash}`
   const componentId = generateHash(String(identifier))
