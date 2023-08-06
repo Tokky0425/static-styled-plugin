@@ -16,7 +16,7 @@ export function staticStyledPlugin(): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const result = await transform(sourceCode)
+      const result = await transform(sourceCode, id)
       const code = result?.code
       if (!code) return sourceCode
 

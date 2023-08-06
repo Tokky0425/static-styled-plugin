@@ -8,7 +8,8 @@ const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 const loader: LoaderDefinitionFunction = function(sourceCode: string) {
   // c.f. https://webpack.js.org/api/loaders/#asynchronous-loaders
   const callback = this.async();
-  transform(sourceCode).then((result) => {
+  const resourcePath = this.resourcePath
+  transform(sourceCode, resourcePath).then((result) => {
     const code = result?.code
     if (!code) {
       callback(null, sourceCode)

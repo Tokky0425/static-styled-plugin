@@ -89,10 +89,10 @@ function processTaggedTemplateExpression(programPath: NodePath<types.Program>, t
 export function visitor(t: typeof types, template: typeof coreTemplate) {
   return {
     Program(path: NodePath<types.Program>) {
-      const styledFunctionName = getStyledFunctionName(path, t)
-      if (!styledFunctionName) return
-      injectReactImport(path, t)
-      processTaggedTemplateExpression(path, t, template, styledFunctionName)
+      // const styledFunctionName = getStyledFunctionName(path, t)
+      // if (!styledFunctionName) return
+      // injectReactImport(path, t)
+      // processTaggedTemplateExpression(path, t, template, styledFunctionName)
     }
   }
 }
