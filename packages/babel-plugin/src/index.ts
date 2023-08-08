@@ -2,9 +2,10 @@ import { transformAsync, types, template as coreTemplate } from "@babel/core"
 import type { PluginObj } from "@babel/core"
 import { visitor } from './visitor'
 import { transformStyledSyntax } from './transformStyledSyntax'
+import { Theme } from './types'
 
-export function transform(sourceCode: string, filePath: string) {
-  return transformStyledSyntax(sourceCode, filePath)
+export function transform(sourceCode: string, filePath: string, theme: Theme) {
+  return transformStyledSyntax(sourceCode, filePath, theme)
 
   // let result = await transformAsync(sourceCode, {
   //   sourceMaps: true,

@@ -6,9 +6,17 @@ const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 
 const loader: LoaderDefinitionFunction = function(sourceCode: string) {
+  const theme = {
+    fontSize: {
+      s: '0.75rem',
+      m: '1rem',
+      l: '1.25rem',
+    }
+  }
+
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const result = transform(sourceCode, resourcePath)
+  const result = transform(sourceCode, resourcePath, theme)
   const code = result?.code
   if (!code) {
     callback(null, sourceCode)

@@ -16,7 +16,15 @@ export function staticStyledPlugin(): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const result = transform(sourceCode, id)
+      const theme = {
+        fontSize: {
+          s: '0.75rem',
+          m: '1rem',
+          l: '1.25rem',
+        }
+      }
+
+      const result = transform(sourceCode, id, theme)
       const code = result?.code
       if (!code) return sourceCode
 
