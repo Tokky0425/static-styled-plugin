@@ -73,9 +73,8 @@ function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledF
   const cssString = result.replace(/\s+/g, ' ').trim()
   const classNameHash = generateHash(cssString)
   const className = `static-styled-${classNameHash}`
-  const componentId = generateHash(String(identifier))
   identifier += 1
-  styleRegistry.addRule(componentId, classNameHash, cssString)
+  styleRegistry.addRule(classNameHash, cssString)
 
   node.replaceWithText(`
     (props: any) => {
