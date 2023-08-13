@@ -5,8 +5,28 @@ import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 import { Theme } from './types'
 
-let identifier = 0
 const TsEvalError = Symbol('EvalError')
+
+export function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
+  const tagName = getTagName(node.getTag(), styledFunctionName)
+  if (!tagName || !isHTMLTag(tagName)) return
+
+  const result = evaluateTaggedTemplateLiteral(node.getTemplate(), theme)
+  if (result === TsEvalError) return
+
+  const cssString = result.replace(/\s+/g, ' ').trim()
+  const classNameHash = generateHash(cssString)
+  const className = `static-styled-${classNameHash}`
+  styleRegistry.addRule(classNameHash, cssString)
+
+  node.replaceWithText(`
+    (props: any) => {
+      const inheritedClassName = props.className ?? '';
+      const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
+      return <${tagName} { ...props } className={joinedClassName} />;
+    }
+  `)
+}
 
 function getTagName(tag: Node, styledFunctionName: string) {
   let tagName: string | null = null
@@ -50,26 +70,4 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
     }
   }
   return result
-}
-
-export function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
-  const tagName = getTagName(node.getTag(), styledFunctionName)
-  if (!tagName || !isHTMLTag(tagName)) return
-
-  const result = evaluateTaggedTemplateLiteral(node.getTemplate(), theme)
-  if (result === TsEvalError) return
-
-  const cssString = result.replace(/\s+/g, ' ').trim()
-  const classNameHash = generateHash(cssString)
-  const className = `static-styled-${classNameHash}`
-  identifier += 1
-  styleRegistry.addRule(classNameHash, cssString)
-
-  node.replaceWithText(`
-    (props: any) => {
-      const inheritedClassName = props.className ?? '';
-      const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
-      return <${tagName} { ...props } className={joinedClassName} />;
-    }
-  `)
 }

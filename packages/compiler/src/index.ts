@@ -13,5 +13,5 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
       processTaggedTemplateExpression(node, 'styled', theme)
     }
   })
-  return { code: file.getFullText() }
+  return file.getFullText()
 }

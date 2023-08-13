@@ -23,12 +23,9 @@ class StyleRegistry {
   buildStyleString() {
     let result = ''
 
-    const build = () => {
-      Object.keys(this.ruleMap).forEach((classNameHash) => {
-        result += `.static-styled-${classNameHash}{${this.ruleMap[classNameHash]}}`
-      })
-    }
-    build()
+    Object.keys(this.ruleMap).forEach((classNameHash) => {
+      result += `.static-styled-${classNameHash}{${this.ruleMap[classNameHash]}}`
+    })
 
     return result
   }

@@ -11,13 +11,7 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const result = compile(sourceCode, resourcePath, theme)
-  const code = result?.code
-  if (!code) {
-    callback(null, sourceCode)
-    return
-  }
-
+  const code = compile(sourceCode, resourcePath, theme)
   const cssString = styleRegistry.getRule()
   if (!cssString) {
     callback(null, code)
