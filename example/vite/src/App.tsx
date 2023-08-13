@@ -1,11 +1,12 @@
 import { useState, ReactNode } from 'react'
-import styled from 'styled-components'
+import styled, { ThemeProvider } from 'styled-components'
 import { Button } from './Button'
+import { theme } from './theme'
 
 function App() {
   const [showText, setShowText] = useState(true)
   return (
-    <div>
+    <ThemeProvider theme={theme}>
       <Button onClick={() => setShowText((prev) => !prev)}>toggle color</Button>
       <Title color="red">Blue</Title>
       <OrangeText>orange</OrangeText>
@@ -13,7 +14,7 @@ function App() {
       <BlackText>black</BlackText>
       {showText && <PinkText>pink</PinkText>}
       <PinkText>pink</PinkText>
-    </div>
+    </ThemeProvider>
   )
 }
 
@@ -30,6 +31,7 @@ const Title = styled(TextComponent)`
 const Text = styled.p`
   display: flex;
   color: red;
+  font-size: ${(props) => props.theme.fontSize.l};
 `
 
 const BlackText = styled(Text)`

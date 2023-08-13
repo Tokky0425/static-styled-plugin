@@ -1,18 +1,13 @@
 import type { LoaderDefinitionFunction } from 'webpack'
-import { transform } from "@static-styled-plugin/babel-plugin"
-import { styleRegistry } from "@static-styled-plugin/style-registry"
+import { Theme, transform } from '@static-styled-plugin/babel-plugin'
+import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 
-const loader: LoaderDefinitionFunction = function(sourceCode: string) {
-  const theme = {
-    fontSize: {
-      s: '0.75rem',
-      m: '1rem',
-      l: '1.25rem',
-    }
-  }
+const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourceCode: string) {
+  const options = this.getOptions()
+  const theme = options.theme
 
   const callback = this.callback
   const resourcePath = this.resourcePath

@@ -27,7 +27,7 @@ module.exports = {
   },
   plugins: [
     new MiniCssExtractPlugin(),
-    new StaticStyledPlugin(),
+    new StaticStyledPlugin({ themeFilePath: 'src/theme.ts' }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'index.html'),
     }),

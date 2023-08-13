@@ -1,5 +1,3 @@
 export type Theme = {
-  [key: string]: {
-    [key: string]: string | number
-  }
+  [key: string]: string | number | Theme
 }

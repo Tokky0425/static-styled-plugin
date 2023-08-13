@@ -3,8 +3,10 @@ import type { PluginObj } from "@babel/core"
 import { visitor } from './visitor'
 import { transformStyledSyntax } from './transformStyledSyntax'
 import { Theme } from './types'
+export { parseTheme } from './parseTheme'
+export type { Theme } from './types'
 
-export function transform(sourceCode: string, filePath: string, theme: Theme) {
+export function transform(sourceCode: string, filePath: string, theme: Theme | null) {
   return transformStyledSyntax(sourceCode, filePath, theme)
 
   // let result = await transformAsync(sourceCode, {

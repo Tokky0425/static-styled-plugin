@@ -10,7 +10,7 @@ let identifier = 0
 const project = new Project()
 const TsEvalError = Symbol('EvalError')
 
-export function transformStyledSyntax(code: string, filePath: string, theme: Theme): BabelFileResult {
+export function transformStyledSyntax(code: string, filePath: string, theme: Theme | null): BabelFileResult {
   const file = project.createSourceFile(filePath, code, { overwrite: true })
   file.forEachDescendant((node, traversal) => {
     if (Node.isTaggedTemplateExpression(node)) {
@@ -31,12 +31,13 @@ function getTagName(tag: Node, styledFunctionName: string) {
   return tagName
 }
 
-function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme) {
+function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme | null) {
   let result = ''
 
   if (Node.isNoSubstitutionTemplateLiteral(template)) {
     result = template.getLiteralText()
   } else {
+    if (!theme) return TsEvalError
     result = template.getHead().getLiteralText()
     const templateSpans = template.getTemplateSpans()
 
@@ -63,7 +64,7 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme) 
   return result
 }
 
-function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme) {
+function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
   const tagName = getTagName(node.getTag(), styledFunctionName)
   if (!tagName || !isHTMLTag(tagName)) return
 
