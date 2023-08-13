@@ -1,6 +1,6 @@
 import { Node, SourceFile } from 'ts-morph'
 
-export function getStyledFunctionName(file: SourceFile) {
+export function getStyledFunctionName(file: SourceFile): string | null {
   let styledFunctionName: string | null = null
 
   file.forEachDescendant((node) => {
