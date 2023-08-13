@@ -1,5 +1,5 @@
 import type { LoaderDefinitionFunction } from 'webpack'
-import { Theme, transform } from '@static-styled-plugin/compiler'
+import { Theme, compile } from '@static-styled-plugin/compiler'
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
@@ -11,7 +11,7 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const result = transform(sourceCode, resourcePath, theme)
+  const result = compile(sourceCode, resourcePath, theme)
   const code = result?.code
   if (!code) {
     callback(null, sourceCode)

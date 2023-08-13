@@ -1,28 +1,17 @@
-import { transformAsync, types, template as coreTemplate } from "@babel/core"
-import type { PluginObj } from "@babel/core"
-import { visitor } from './visitor'
-import { transformStyledSyntax } from './transformStyledSyntax'
+import { processTaggedTemplateExpression } from './processTaggedTemplateExpression'
 import { Theme } from './types'
+import { Node, Project } from 'ts-morph'
 export { parseTheme } from './parseTheme'
 export type { Theme } from './types'
 
-export function transform(sourceCode: string, filePath: string, theme: Theme | null) {
-  return transformStyledSyntax(sourceCode, filePath, theme)
+const project = new Project()
 
-  // let result = await transformAsync(sourceCode, {
-  //   sourceMaps: true,
-  //   plugins: [plugin]
-  // })
-  // result = result?.code ? transformStyledSyntax(sourceCode, filePath) : null
-  // return result
+export function compile(code: string, filePath: string, theme: Theme | null) {
+  const file = project.createSourceFile(filePath, code, { overwrite: true })
+  file.forEachDescendant((node) => {
+    if (Node.isTaggedTemplateExpression(node)) {
+      processTaggedTemplateExpression(node, 'styled', theme)
+    }
+  })
+  return { code: file.getFullText() }
 }
-// function plugin({ types: t, template }: { types: typeof types, template: typeof coreTemplate }): PluginObj {
-//   return {
-//     name: 'static-styled-plugin',
-//     manipulateOptions(opts, parserOpts) {
-//       parserOpts.plugins.push('jsx')
-//       parserOpts.plugins.push('typescript')
-//     },
-//     visitor: visitor(t, template),
-//   }
-// }

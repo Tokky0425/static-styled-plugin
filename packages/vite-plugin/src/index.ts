@@ -1,6 +1,6 @@
 import path from 'path'
 import { Plugin, ResolvedConfig } from 'vite'
-import { transform, parseTheme } from '@static-styled-plugin/compiler'
+import { compile, parseTheme } from '@static-styled-plugin/compiler'
 import { styleRegistry } from "@static-styled-plugin/style-registry"
 
 type Options = {
@@ -28,7 +28,7 @@ export function staticStyledPlugin(options?: Options): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const result = transform(sourceCode, id, theme)
+      const result = compile(sourceCode, id, theme)
       const code = result?.code
       if (!code) return sourceCode
 

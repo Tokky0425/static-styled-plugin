@@ -1,24 +1,12 @@
-import { BabelFileResult } from '@babel/core'
 import { styleRegistry } from '@static-styled-plugin/style-registry'
-import { Node, Project, TaggedTemplateExpression, TemplateLiteral } from 'ts-morph'
+import { Node, TaggedTemplateExpression, TemplateLiteral } from 'ts-morph'
 import { evaluate } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 import { Theme } from './types'
 
 let identifier = 0
-const project = new Project()
 const TsEvalError = Symbol('EvalError')
-
-export function transformStyledSyntax(code: string, filePath: string, theme: Theme | null): BabelFileResult {
-  const file = project.createSourceFile(filePath, code, { overwrite: true })
-  file.forEachDescendant((node, traversal) => {
-    if (Node.isTaggedTemplateExpression(node)) {
-      processTaggedTemplateExpression(node, 'styled', theme)
-    }
-  })
-  return { code: file.getFullText() }
-}
 
 function getTagName(tag: Node, styledFunctionName: string) {
   let tagName: string | null = null
@@ -64,7 +52,7 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
   return result
 }
 
-function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
+export function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
   const tagName = getTagName(node.getTag(), styledFunctionName)
   if (!tagName || !isHTMLTag(tagName)) return
 
