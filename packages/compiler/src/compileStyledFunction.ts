@@ -7,7 +7,7 @@ import { Theme } from './types'
 
 const TsEvalError = Symbol('EvalError')
 
-export function processTaggedTemplateExpression(file: SourceFile, styledFunctionName: string, theme: Theme | null) {
+export function compileStyledFunction(file: SourceFile, styledFunctionName: string, theme: Theme | null) {
   file.forEachDescendant((node) => {
     if (!Node.isTaggedTemplateExpression(node)) return
 

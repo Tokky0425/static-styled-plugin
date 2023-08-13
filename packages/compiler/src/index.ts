@@ -1,6 +1,6 @@
-import { processTaggedTemplateExpression } from './processTaggedTemplateExpression'
+import { compileStyledFunction } from './compileStyledFunction'
 import { Theme } from './types'
-import { Node, Project } from 'ts-morph'
+import { Project } from 'ts-morph'
 export { parseTheme } from './parseTheme'
 import { getStyledFunctionName } from './getStyledFunctionName'
 export type { Theme } from './types'
@@ -12,6 +12,6 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
   const styledFunctionName = getStyledFunctionName(file)
   if (!styledFunctionName) return file.getFullText()
 
-  processTaggedTemplateExpression(file, styledFunctionName, theme)
+  compileStyledFunction(file, styledFunctionName, theme)
   return file.getFullText()
 }
