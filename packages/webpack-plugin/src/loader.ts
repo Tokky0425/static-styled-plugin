@@ -1,45 +1,41 @@
 import type { LoaderDefinitionFunction } from 'webpack'
-import { transform } from "@static-styled-plugin/babel-plugin"
-import { styleRegistry } from "@static-styled-plugin/style-registry"
+import { Theme, compile } from '@static-styled-plugin/compiler'
+import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
 
-const loader: LoaderDefinitionFunction = function(sourceCode: string) {
-  // c.f. https://webpack.js.org/api/loaders/#asynchronous-loaders
-  const callback = this.async();
-  transform(sourceCode).then((result) => {
-    const code = result?.code
-    if (!code) {
-      callback(null, sourceCode)
-      return
-    }
+const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourceCode: string) {
+  const options = this.getOptions()
+  const theme = options.theme
 
-    const cssString = styleRegistry.getRule()
-    if (!cssString) {
-      callback(null, code)
-      return
-    }
-    styleRegistry.reset()
+  const callback = this.callback
+  const resourcePath = this.resourcePath
+  const code = compile(sourceCode, resourcePath, theme)
+  const cssString = styleRegistry.getRule()
+  if (!cssString) {
+    callback(null, code)
+    return
+  }
+  styleRegistry.reset()
 
-    const outputPath: string | undefined = this._compilation?.options.output.path
-    if (!outputPath) {
-      callback(null, code)
-      return
-    }
+  const outputPath: string | undefined = this._compilation?.options.output.path
+  if (!outputPath) {
+    callback(null, code)
+    return
+  }
 
-    const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
-      sourceCode: cssString
-    })}`
+  const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
+    sourceCode: cssString
+  })}`
 
-    const importCSSIdentifier = `import ${JSON.stringify(
-      this.utils.contextify(
-        this.context || this.rootContext,
-        `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
-    )};`
+  const importCSSIdentifier = `import ${JSON.stringify(
+    this.utils.contextify(
+      this.context || this.rootContext,
+      `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
+  )};`
 
-    callback(null, `${importCSSIdentifier}\n${code}`)
-  })
+  callback(null, `${importCSSIdentifier}\n${code}`)
 }
 
 export default loader

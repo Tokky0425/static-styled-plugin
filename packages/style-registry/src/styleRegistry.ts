@@ -1,8 +1,5 @@
 type RuleMap = {
-  [componentId: string]: {
-    classNameHash: string,
-    cssString: string,
-  }
+  [classNameHash: string]: string
 }
 
 class StyleRegistry {
@@ -11,11 +8,8 @@ class StyleRegistry {
   constructor() {
     this.ruleMap = {}
   }
-  addRule(componentId: string, classNameHash: string, cssString: string,) {
-    this.ruleMap[componentId] = {
-      classNameHash,
-      cssString,
-    }
+  addRule(classNameHash: string, cssString: string,) {
+    this.ruleMap[classNameHash] = cssString
   }
 
   reset() {
@@ -29,12 +23,9 @@ class StyleRegistry {
   buildStyleString() {
     let result = ''
 
-    const build = () => {
-      Object.values(this.ruleMap).forEach(({ classNameHash, cssString }) => {
-        result += `.static-styled-${classNameHash}{${cssString}}`
-      })
-    }
-    build()
+    Object.keys(this.ruleMap).forEach((classNameHash) => {
+      result += `.static-styled-${classNameHash}{${this.ruleMap[classNameHash]}}`
+    })
 
     return result
   }

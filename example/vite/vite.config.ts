@@ -4,5 +4,5 @@ import { staticStyledPlugin } from '@static-styled-plugin/vite-plugin'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), staticStyledPlugin()],
+  plugins: [react(), staticStyledPlugin({ themeFilePath: 'src/theme.ts' })],
 })
