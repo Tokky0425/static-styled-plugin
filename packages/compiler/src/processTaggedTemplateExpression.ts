@@ -1,5 +1,5 @@
 import { styleRegistry } from '@static-styled-plugin/style-registry'
-import { Node, TaggedTemplateExpression, TemplateLiteral } from 'ts-morph'
+import { Node, SourceFile, TemplateLiteral } from 'ts-morph'
 import { evaluate } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
@@ -7,25 +7,29 @@ import { Theme } from './types'
 
 const TsEvalError = Symbol('EvalError')
 
-export function processTaggedTemplateExpression(node: TaggedTemplateExpression, styledFunctionName: string, theme: Theme | null) {
-  const tagName = getTagName(node.getTag(), styledFunctionName)
-  if (!tagName || !isHTMLTag(tagName)) return
+export function processTaggedTemplateExpression(file: SourceFile, styledFunctionName: string, theme: Theme | null) {
+  file.forEachDescendant((node) => {
+    if (!Node.isTaggedTemplateExpression(node)) return
 
-  const result = evaluateTaggedTemplateLiteral(node.getTemplate(), theme)
-  if (result === TsEvalError) return
+    const tagName = getTagName(node.getTag(), styledFunctionName)
+    if (!tagName || !isHTMLTag(tagName)) return
 
-  const cssString = result.replace(/\s+/g, ' ').trim()
-  const classNameHash = generateHash(cssString)
-  const className = `static-styled-${classNameHash}`
-  styleRegistry.addRule(classNameHash, cssString)
+    const result = evaluateTaggedTemplateLiteral(node.getTemplate(), theme)
+    if (result === TsEvalError) return
 
-  node.replaceWithText(`
+    const cssString = result.replace(/\s+/g, ' ').trim()
+    const classNameHash = generateHash(cssString)
+    const className = `static-styled-${classNameHash}`
+    styleRegistry.addRule(classNameHash, cssString)
+
+    node.replaceWithText(`
     (props: any) => {
       const inheritedClassName = props.className ?? '';
       const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
       return <${tagName} { ...props } className={joinedClassName} />;
     }
   `)
+  })
 }
 
 function getTagName(tag: Node, styledFunctionName: string) {

@@ -12,10 +12,6 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
   const styledFunctionName = getStyledFunctionName(file)
   if (!styledFunctionName) return file.getFullText()
 
-  file.forEachDescendant((node) => {
-    if (Node.isTaggedTemplateExpression(node)) {
-      processTaggedTemplateExpression(node, styledFunctionName, theme)
-    }
-  })
+  processTaggedTemplateExpression(file, styledFunctionName, theme)
   return file.getFullText()
 }
