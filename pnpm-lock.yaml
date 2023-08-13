@@ -111,7 +111,7 @@ importers:
         specifier: 4.15.1
         version: 4.15.1(webpack-cli@5.1.4)(webpack@5.88.2)
 
-  packages/babel-plugin:
+  packages/compiler:
     dependencies:
       '@babel/core':
         specifier: 7.22.9
@@ -134,9 +134,9 @@ importers:
 
   packages/vite-plugin:
     dependencies:
-      '@static-styled-plugin/babel-plugin':
+      '@static-styled-plugin/compiler':
         specifier: workspace:^
-        version: link:../babel-plugin
+        version: link:../compiler
       '@static-styled-plugin/style-registry':
         specifier: workspace:^
         version: link:../style-registry
@@ -147,9 +147,9 @@ importers:
 
   packages/webpack-plugin:
     dependencies:
-      '@static-styled-plugin/babel-plugin':
+      '@static-styled-plugin/compiler':
         specifier: workspace:^
-        version: link:../babel-plugin
+        version: link:../compiler
       '@static-styled-plugin/style-registry':
         specifier: workspace:^
         version: link:../style-registry

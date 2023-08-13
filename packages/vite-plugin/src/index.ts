@@ -1,6 +1,6 @@
 import path from 'path'
 import { Plugin, ResolvedConfig } from 'vite'
-import { transform, parseTheme } from '@static-styled-plugin/babel-plugin'
+import { transform, parseTheme } from '@static-styled-plugin/compiler'
 import { styleRegistry } from "@static-styled-plugin/style-registry"
 
 type Options = {
@@ -41,7 +41,6 @@ export function staticStyledPlugin(options?: Options): Plugin {
         // Reason: Vite injects style tag at the end of head tag when HMR occurs, but style tag by styled-components should come last
         const rootRelativeFilePath = path.relative(process.cwd() + '/src', id)
         const cssRelativeFilePath = path.normalize(`${rootRelativeFilePath.replace(targetExtensionRegex, "")}.css`)
-        console.log(cssRelativeFilePath)
         return injectDevelopmentCSS(cssString, cssRelativeFilePath) + code
       }
 

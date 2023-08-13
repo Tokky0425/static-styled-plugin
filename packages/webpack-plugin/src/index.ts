@@ -1,6 +1,6 @@
 import type { Compiler } from 'webpack'
-import type { Theme } from '@static-styled-plugin/babel-plugin'
-import { parseTheme } from '@static-styled-plugin/babel-plugin'
+import type { Theme } from '@static-styled-plugin/compiler'
+import { parseTheme } from '@static-styled-plugin/compiler'
 
 type Options = {
   themeFilePath?: string

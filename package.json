@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
-    "babel-plugin": "pnpm -F \"babel-plugin\"",
+    "compiler": "pnpm -F \"compiler\"",
     "style-registry": "pnpm -F \"style-registry\"",
     "vite-plugin": "pnpm -F \"vite-plugin\"",
     "webpack-plugin": "pnpm -F \"webpack-plugin\""

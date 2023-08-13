@@ -1,5 +1,5 @@
 import type { LoaderDefinitionFunction } from 'webpack'
-import { Theme, transform } from '@static-styled-plugin/babel-plugin'
+import { Theme, transform } from '@static-styled-plugin/compiler'
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
