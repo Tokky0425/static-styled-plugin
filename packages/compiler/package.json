@@ -11,12 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@babel/core": "7.22.9",
     "@static-styled-plugin/style-registry": "workspace:^",
     "ts-evaluator": "^1.2.0",
     "ts-morph": "19.0.0"
-  },
-  "devDependencies": {
-    "@types/babel__core": "7.20.1"
   }
 }
