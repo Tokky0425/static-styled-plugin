@@ -12,5 +12,5 @@ export function getStyledFunctionName(file: SourceFile) {
     }
   })
 
-  return styledFunctionName
+  return styledFunctionName // normally 'styled' if it exists
 }
