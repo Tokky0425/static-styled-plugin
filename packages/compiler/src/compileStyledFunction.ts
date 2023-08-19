@@ -1,5 +1,13 @@
 import { styleRegistry } from '@static-styled-plugin/style-registry'
-import { Node, SourceFile, TemplateLiteral } from 'ts-morph'
+import {
+  ArrowFunction,
+  Expression,
+  Identifier,
+  Node,
+  PropertyAccessExpression,
+  SourceFile,
+  TemplateLiteral
+} from 'ts-morph'
 import { evaluate } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
@@ -49,79 +57,97 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
   if (Node.isNoSubstitutionTemplateLiteral(template)) {
     result = template.getLiteralText()
   } else {
-    if (!theme) return TsEvalError
     result = template.getHead().getLiteralText()
     const templateSpans = template.getTemplateSpans()
 
     for (let i = 0; i < templateSpans.length; i++) {
       const templateSpan = templateSpans[i]
+      const templateMiddle = templateSpan.getLiteral().getLiteralText()
       const templateSpanExpression = templateSpan.getExpression()
-      if (Node.isPropertyAccessExpression(templateSpanExpression)) {
-        /* pattern like the following */
-        // const constants = { width: 20 }
-        // const Box = styled.div`
-        //   width: ${constants.width}px;
-        // `
-        const referencesAsNode = templateSpanExpression.findReferencesAsNodes()
-        for (const node of referencesAsNode) {
-          const nodeParent = node.getParentOrThrow()
-          if (Node.isPropertyAssignment(nodeParent)) {
-            const propertyInitializer = nodeParent.getInitializer()
-            if (!propertyInitializer) return TsEvalError
-            const evaluated = evaluate({
-              node: propertyInitializer.compilerNode
-            })
-            if (!evaluated.success) return TsEvalError
-
-            const templateMiddle = templateSpan.getLiteral().getLiteralText()
-            result += (evaluated.value + templateMiddle)
-          }
-        }
-        continue
-      }
-      if (Node.isIdentifier(templateSpanExpression)) {
-        /* pattern like the following */
-        // const width = 20
-        // const Box = styled.div`
-        //   width: ${width}px;
-        // `
-        const referencesAsNode = templateSpanExpression.findReferencesAsNodes()
-        for (const node of referencesAsNode) {
-          const nodeParent = node.getParentOrThrow()
-          if (Node.isVariableDeclaration(nodeParent)) {
-            const evaluated = evaluate({
-              node: nodeParent.compilerNode
-            })
-            if (!evaluated.success) return TsEvalError
-
-            const templateMiddle = templateSpan.getLiteral().getLiteralText()
-            result += (evaluated.value + templateMiddle)
-          }
-        }
-        continue
-      }
-      if (Node.isArrowFunction(templateSpanExpression)) {
-        /* pattern like the following */
-        // const Text = styled.p`
-        //   fontSize: ${(props) => props.fontSize.m}px;
-        // `
-        const evaluated = evaluate({
-          node: templateSpanExpression.getBody().compilerNode as any,
-          environment: {
-            extra: {
-              props: {theme},
-              theme: theme
-            }
-          }
-        })
-        if (!evaluated.success) return TsEvalError
-
-        const templateMiddle = templateSpan.getLiteral().getLiteralText()
-        result += (evaluated.value + templateMiddle)
-        continue
-      }
-      return TsEvalError
+      const value = evaluateInterpolation(templateSpanExpression, theme)
+      if (value === TsEvalError) return TsEvalError
+      result += (value + templateMiddle)
     }
   }
   return result
+}
+
+function evaluateInterpolation(node: Expression, theme: Theme | null) {
+  if (Node.isPropertyAccessExpression(node)) {
+    /* pattern like the following */
+    // const constants = { width: 20 }
+    // const Box = styled.div`
+    //   width: ${constants.width}px;
+    // `
+    return evaluatePropertyAccessExpression(node)
+  } else if (Node.isIdentifier(node)) {
+    /* pattern like the following */
+    // const width = 20
+    // const Box = styled.div`
+    //   width: ${width}px;
+    // `
+    return evaluateIdentifier(node)
+  } else if (Node.isArrowFunction(node)) {
+    /* pattern like the following */
+    // const Text = styled.p`
+    //   fontSize: ${(props) => props.fontSize.m}px;
+    // `
+    return evaluateArrowFunction(node, theme)
+  } else {
+    return TsEvalError
+  }
+}
+
+function evaluatePropertyAccessExpression(node: PropertyAccessExpression): string | number | typeof TsEvalError {
+  let value: unknown
+  const referencesAsNode = node.findReferencesAsNodes()
+
+  for (const node of referencesAsNode) {
+    const nodeParent = node.getParentOrThrow()
+    if (!Node.isPropertyAssignment(nodeParent)) continue
+    const propertyInitializer = nodeParent.getInitializer()
+    if (!propertyInitializer) continue
+    const evaluated = evaluate({
+      node: propertyInitializer.compilerNode
+    })
+    if (!evaluated.success) continue
+    value = evaluated.value
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') return value
+  return TsEvalError
+}
+
+function evaluateIdentifier(node: Identifier): string | number | typeof TsEvalError {
+  let value: unknown
+  const referencesAsNode = node.findReferencesAsNodes()
+
+  for (const node of referencesAsNode) {
+    const nodeParent = node.getParentOrThrow()
+    if (!Node.isVariableDeclaration(nodeParent)) continue
+    const evaluated = evaluate({
+      node: nodeParent.compilerNode
+    })
+    if (!evaluated.success) continue
+    value = evaluated.value
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') return value
+  return TsEvalError
+}
+
+function evaluateArrowFunction(node: ArrowFunction, theme: Theme | null): string | number | typeof TsEvalError {
+  const evaluated = evaluate({
+    node: node.getBody().compilerNode as any,
+    environment: {
+      extra: {
+        props: { theme },
+        theme: theme
+      }
+    }
+  })
+  if (!evaluated.success) return TsEvalError
+  const value = evaluated.value
+  if (typeof value === 'string' || typeof value === 'number') return value
+  return TsEvalError
 }
