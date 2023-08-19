@@ -100,21 +100,27 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
         }
         continue
       }
-      if (!Node.isArrowFunction(templateSpanExpression)) return TsEvalError
-
-      const evaluated = evaluate({
-        node: templateSpanExpression.getBody().compilerNode as any,
-        environment: {
-          extra: {
-            props: { theme },
-            theme: theme
+      if (Node.isArrowFunction(templateSpanExpression)) {
+        /* pattern like the following */
+        // const Text = styled.p`
+        //   fontSize: ${(props) => props.fontSize.m}px;
+        // `
+        const evaluated = evaluate({
+          node: templateSpanExpression.getBody().compilerNode as any,
+          environment: {
+            extra: {
+              props: {theme},
+              theme: theme
+            }
           }
-        }
-      })
-      if (!evaluated.success) return TsEvalError
+        })
+        if (!evaluated.success) return TsEvalError
 
-      const templateMiddle = templateSpan.getLiteral().getLiteralText()
-      result += (evaluated.value + templateMiddle)
+        const templateMiddle = templateSpan.getLiteral().getLiteralText()
+        result += (evaluated.value + templateMiddle)
+        continue
+      }
+      return TsEvalError
     }
   }
   return result
