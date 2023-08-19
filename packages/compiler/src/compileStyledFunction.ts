@@ -37,7 +37,7 @@ function getTagName(tag: Node, styledFunctionName: string) {
   if (/* e.g. styled('p') */ Node.isCallExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
     const arg = tag.getArguments()[0]
     tagName = Node.isStringLiteral(arg) ? arg.getLiteralValue() : null
-  } else if (/* e.g. styled.p */ Node.isMemberExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
+  } else if (/* e.g. styled.p */ Node.isPropertyAccessExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
     tagName = tag.compilerNode.name.getText() ?? null
   }
   return tagName
