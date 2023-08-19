@@ -73,7 +73,9 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
 }
 
 function evaluateInterpolation(node: Expression, theme: Theme | null) {
-  if (Node.isPropertyAccessExpression(node)) {
+  if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
+    return node.getLiteralValue()
+  } else if (Node.isPropertyAccessExpression(node)) {
     /* pattern like the following */
     // const constants = { width: 20 }
     // const Box = styled.div`
