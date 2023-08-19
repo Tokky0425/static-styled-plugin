@@ -56,6 +56,50 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
     for (let i = 0; i < templateSpans.length; i++) {
       const templateSpan = templateSpans[i]
       const templateSpanExpression = templateSpan.getExpression()
+      if (Node.isPropertyAccessExpression(templateSpanExpression)) {
+        /* pattern like the following */
+        // const constants = { width: 20 }
+        // const Box = styled.div`
+        //   width: ${constants.width}px;
+        // `
+        const referencesAsNode = templateSpanExpression.findReferencesAsNodes()
+        for (const node of referencesAsNode) {
+          const nodeParent = node.getParentOrThrow()
+          if (Node.isPropertyAssignment(nodeParent)) {
+            const propertyInitializer = nodeParent.getInitializer()
+            if (!propertyInitializer) return TsEvalError
+            const evaluated = evaluate({
+              node: propertyInitializer.compilerNode
+            })
+            if (!evaluated.success) return TsEvalError
+
+            const templateMiddle = templateSpan.getLiteral().getLiteralText()
+            result += (evaluated.value + templateMiddle)
+          }
+        }
+        continue
+      }
+      if (Node.isIdentifier(templateSpanExpression)) {
+        /* pattern like the following */
+        // const width = 20
+        // const Box = styled.div`
+        //   width: ${width}px;
+        // `
+        const referencesAsNode = templateSpanExpression.findReferencesAsNodes()
+        for (const node of referencesAsNode) {
+          const nodeParent = node.getParentOrThrow()
+          if (Node.isVariableDeclaration(nodeParent)) {
+            const evaluated = evaluate({
+              node: nodeParent.compilerNode
+            })
+            if (!evaluated.success) return TsEvalError
+
+            const templateMiddle = templateSpan.getLiteral().getLiteralText()
+            result += (evaluated.value + templateMiddle)
+          }
+        }
+        continue
+      }
       if (!Node.isArrowFunction(templateSpanExpression)) return TsEvalError
 
       const evaluated = evaluate({
