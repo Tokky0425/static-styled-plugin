@@ -92,7 +92,7 @@ function evaluateInterpolation(node: Node, theme: Theme | null, extra?: Evaluate
     // const Box = styled.div`
     //   width: ${width}px;
     // `
-    return evaluateIdentifier(node)
+    return evaluateIdentifier(node, extra)
   } else if (Node.isTemplateExpression(node)) {
     // TODO
     return TsEvalError
@@ -138,7 +138,7 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra?
   return TsEvalError
 }
 
-function evaluateIdentifier(node: Identifier): string | number | typeof TsEvalError {
+function evaluateIdentifier(node: Identifier, extra?: EvaluateExtra): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -146,10 +146,21 @@ function evaluateIdentifier(node: Identifier): string | number | typeof TsEvalEr
     const nodeParent = node.getParentOrThrow()
     if (!Node.isVariableDeclaration(nodeParent)) continue
     const evaluated = evaluate({
-      node: nodeParent.compilerNode
+      node: nodeParent.compilerNode,
+      environment: { extra }
     })
     if (!evaluated.success) continue
     value = evaluated.value
+  }
+
+  if (!value && extra) {
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      environment: { extra }
+    })
+    if (evaluated.success) {
+      value = evaluated.value
+    }
   }
 
   if (typeof value === 'string' || typeof value === 'number') return value
@@ -179,7 +190,6 @@ function evaluateArrowFunction(node: ArrowFunction, theme: Theme | null): string
           extra = recursivelyBuildExtraBasedOnTheme(bindingElements, {
             theme
           })
-          console.log(extra)
         }
       }
     }
