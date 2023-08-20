@@ -1,6 +1,7 @@
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 import {
   ArrowFunction,
+  BinaryExpression,
   BindingElement,
   Identifier,
   Node,
@@ -65,7 +66,7 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
       const templateSpan = templateSpans[i]
       const templateMiddle = templateSpan.getLiteral().getLiteralText()
       const templateSpanExpression = templateSpan.getExpression()
-      const value = evaluateInterpolation(templateSpanExpression, theme)
+      const value = evaluateInterpolation(templateSpanExpression, {}, theme)
       if (value === TsEvalError) return TsEvalError
       result += (value + templateMiddle)
     }
@@ -73,41 +74,60 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
   return result
 }
 
-function evaluateInterpolation(node: Node, theme: Theme | null, extra?: EvaluateExtra) {
+function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme | null) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
     return node.getLiteralValue()
   } else if (Node.isBinaryExpression(node)) {
-    // TODO
-    return TsEvalError
+    // e.g. width * 2
+    return evaluateBinaryExpression(node, extra)
   } else if (Node.isPropertyAccessExpression(node)) {
-    /* pattern like the following */
-    // const constants = { width: 20 }
-    // const Box = styled.div`
-    //   width: ${constants.width}px;
-    // `
+    // e.g. theme.fontSize.m
     return evaluatePropertyAccessExpression(node, extra)
   } else if (Node.isIdentifier(node)) {
-    /* pattern like the following */
-    // const width = 20
-    // const Box = styled.div`
-    //   width: ${width}px;
-    // `
+    // e.g. width
     return evaluateIdentifier(node, extra)
   } else if (Node.isTemplateExpression(node)) {
     // TODO
     return TsEvalError
   } else if (Node.isArrowFunction(node)) {
-    /* pattern like the following */
-    // const Text = styled.p`
-    //   fontSize: ${(props) => props.fontSize.m}px;
-    // `
-    return evaluateArrowFunction(node, theme)
+    // e.g. (props) => props.fontSize.m
+    return evaluateArrowFunction(node, extra, theme)
   } else {
     return TsEvalError
   }
 }
 
-function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra?: EvaluateExtra): string | number | typeof TsEvalError {
+function flattenBinaryExpressions(node: BinaryExpression): Node[] {
+  const left = node.getLeft()
+  const right = node.getRight()
+  if (Node.isBinaryExpression(left)) {
+    return [...flattenBinaryExpressions(left), right]
+  } else {
+    return [left, right]
+  }
+}
+
+function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra): string | number | typeof TsEvalError {
+  /* first, evaluate each item of binary expressions, and then evaluate the whole node */
+  const items = flattenBinaryExpressions(node)
+  for (const item of items) {
+    const value = evaluateInterpolation(item, extra)
+    if (value === TsEvalError) return TsEvalError
+    item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
+  }
+
+  const evaluated = evaluate({
+    node: node.compilerNode,
+    environment: { extra }
+  })
+  if (evaluated.success) {
+    const value = evaluated.value
+    if (typeof value === 'string' || typeof value === 'number') return value
+  }
+  return TsEvalError
+}
+
+function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -138,7 +158,7 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra?
   return TsEvalError
 }
 
-function evaluateIdentifier(node: Identifier, extra?: EvaluateExtra): string | number | typeof TsEvalError {
+function evaluateIdentifier(node: Identifier, extra: EvaluateExtra): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -167,10 +187,9 @@ function evaluateIdentifier(node: Identifier, extra?: EvaluateExtra): string | n
   return TsEvalError
 }
 
-function evaluateArrowFunction(node: ArrowFunction, theme: Theme | null): string | number | typeof TsEvalError {
+function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, theme?: Theme | null): string | number | typeof TsEvalError {
   const body = node.getBody()
-  let extra: EvaluateExtra | undefined = undefined
-  if (Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
+  if (Node.isBinaryExpression(body) || Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
     // when function merely returns property access expression like `props.theme.fontSize.m`
     const parent = body.getParent()
     if (Node.isArrowFunction(parent)) {
@@ -196,7 +215,7 @@ function evaluateArrowFunction(node: ArrowFunction, theme: Theme | null): string
   } else if (Node.isBlock(body)) {
     // TODO: support block
   }
-  return evaluateInterpolation(body, theme, extra)
+  return evaluateInterpolation(body, extra)
 }
 
 function recursivelyBuildExtraBasedOnTheme(bindingElements: BindingElement[], themeFragment: Theme, extra: EvaluateExtra = {}): EvaluateExtra {
