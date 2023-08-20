@@ -1,19 +1,20 @@
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 import {
   ArrowFunction,
-  Expression,
+  BindingElement,
   Identifier,
   Node,
   PropertyAccessExpression,
   SourceFile,
   TemplateLiteral
 } from 'ts-morph'
-import { evaluate } from 'ts-evaluator'
+import { evaluate, IEnvironment } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 import { Theme } from './types'
 
 const TsEvalError = Symbol('EvalError')
+type EvaluateExtra = IEnvironment['extra']
 
 export function compileStyledFunction(file: SourceFile, styledFunctionName: string, theme: Theme | null) {
   file.forEachDescendant((node) => {
@@ -72,16 +73,19 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
   return result
 }
 
-function evaluateInterpolation(node: Expression, theme: Theme | null) {
+function evaluateInterpolation(node: Node, theme: Theme | null, extra?: EvaluateExtra) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
     return node.getLiteralValue()
+  } else if (Node.isBinaryExpression(node)) {
+    // TODO
+    return TsEvalError
   } else if (Node.isPropertyAccessExpression(node)) {
     /* pattern like the following */
     // const constants = { width: 20 }
     // const Box = styled.div`
     //   width: ${constants.width}px;
     // `
-    return evaluatePropertyAccessExpression(node)
+    return evaluatePropertyAccessExpression(node, extra)
   } else if (Node.isIdentifier(node)) {
     /* pattern like the following */
     // const width = 20
@@ -89,6 +93,9 @@ function evaluateInterpolation(node: Expression, theme: Theme | null) {
     //   width: ${width}px;
     // `
     return evaluateIdentifier(node)
+  } else if (Node.isTemplateExpression(node)) {
+    // TODO
+    return TsEvalError
   } else if (Node.isArrowFunction(node)) {
     /* pattern like the following */
     // const Text = styled.p`
@@ -100,7 +107,7 @@ function evaluateInterpolation(node: Expression, theme: Theme | null) {
   }
 }
 
-function evaluatePropertyAccessExpression(node: PropertyAccessExpression): string | number | typeof TsEvalError {
+function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra?: EvaluateExtra): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -110,10 +117,21 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression): strin
     const propertyInitializer = nodeParent.getInitializer()
     if (!propertyInitializer) continue
     const evaluated = evaluate({
-      node: propertyInitializer.compilerNode
+      node: propertyInitializer.compilerNode,
+      environment: { extra }
     })
     if (!evaluated.success) continue
     value = evaluated.value
+  }
+
+  if (!value && extra) {
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      environment: { extra }
+    })
+    if (evaluated.success) {
+      value = evaluated.value
+    }
   }
 
   if (typeof value === 'string' || typeof value === 'number') return value
@@ -139,17 +157,64 @@ function evaluateIdentifier(node: Identifier): string | number | typeof TsEvalEr
 }
 
 function evaluateArrowFunction(node: ArrowFunction, theme: Theme | null): string | number | typeof TsEvalError {
-  const evaluated = evaluate({
-    node: node.getBody().compilerNode as any,
-    environment: {
-      extra: {
-        props: { theme },
-        theme: theme
+  const body = node.getBody()
+  let extra: EvaluateExtra | undefined = undefined
+  if (Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
+    // when function merely returns property access expression like `props.theme.fontSize.m`
+    const parent = body.getParent()
+    if (Node.isArrowFunction(parent)) {
+      const parameters = parent.getParameters()
+      const firstParameter = parameters[0]?.getNameNode()
+      if (Node.isIdentifier(firstParameter)) {
+        // (props) => ...
+        extra = {
+          [firstParameter.getFullText()]: { theme }
+        }
+      } else if (Node.isObjectBindingPattern(firstParameter)) {
+        // ({ theme }) => ...
+        // ({ theme: myTheme }) => ...
+        // ({ theme: { fontSize } }) => ...
+        const bindingElements = firstParameter.getElements()
+        if (theme) {
+          extra = recursivelyBuildExtraBasedOnTheme(bindingElements, {
+            theme
+          })
+          console.log(extra)
+        }
       }
     }
-  })
-  if (!evaluated.success) return TsEvalError
-  const value = evaluated.value
-  if (typeof value === 'string' || typeof value === 'number') return value
-  return TsEvalError
+  } else if (Node.isBlock(body)) {
+    // TODO: support block
+  }
+  return evaluateInterpolation(body, theme, extra)
+}
+
+function recursivelyBuildExtraBasedOnTheme(bindingElements: BindingElement[], themeFragment: Theme, extra: EvaluateExtra = {}): EvaluateExtra {
+  for (const bindingElement of bindingElements) {
+    const name = bindingElement.getNameNode()
+    const propertyName = bindingElement.getPropertyNameNode()
+    if (Node.isIdentifier(name)) {
+      /**
+       * just destructure: `({ theme }) => ...`
+       * or
+       * destructure and rename: `({ theme: myTheme }) => ...`
+       */
+      const keyForExtra = name.getText() // 'theme' when Identifier, 'myTheme' when ObjectBindingPattern
+      const keyForTheme = propertyName?.getText() ?? keyForExtra // propertyName.getText() returns 'theme' when ObjectBindingPattern
+      const value = themeFragment[keyForTheme]
+      if (value) {
+        extra[keyForExtra] = value
+      }
+    } else if (Node.isObjectBindingPattern(name)) {
+      /**
+       * ({ theme: { fontSize } }) => ...
+       */
+      const keyForExtra = propertyName?.getText() // 'theme'
+      if (!keyForExtra) continue // not sure if this possibly happens
+      const newThemeFragment = themeFragment[keyForExtra]
+      if (!newThemeFragment || typeof newThemeFragment === 'string' || typeof newThemeFragment === 'number') continue
+      recursivelyBuildExtraBasedOnTheme(name.getElements(), newThemeFragment, extra)
+    }
+  }
+  return extra
 }
