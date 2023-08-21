@@ -76,7 +76,7 @@ function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme |
 }
 
 function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme | null) {
-  if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
+  if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return node.getLiteralValue()
   } else if (Node.isBinaryExpression(node)) {
     // e.g. width * 2
