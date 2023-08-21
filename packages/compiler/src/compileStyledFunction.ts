@@ -7,6 +7,7 @@ import {
   Node,
   PropertyAccessExpression,
   SourceFile,
+  TemplateExpression,
   TemplateLiteral
 } from 'ts-morph'
 import { evaluate, IEnvironment } from 'ts-evaluator'
@@ -87,8 +88,8 @@ function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme |
     // e.g. width
     return evaluateIdentifier(node, extra)
   } else if (Node.isTemplateExpression(node)) {
-    // TODO
-    return TsEvalError
+    // e.g. `${fontSize.m}px`
+    return evaluateTemplateExpression(node, extra)
   } else if (Node.isArrowFunction(node)) {
     // e.g. (props) => props.fontSize.m
     return evaluateArrowFunction(node, extra, theme)
@@ -185,6 +186,22 @@ function evaluateIdentifier(node: Identifier, extra: EvaluateExtra): string | nu
 
   if (typeof value === 'string' || typeof value === 'number') return value
   return TsEvalError
+}
+
+function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra): string | typeof TsEvalError {
+  let result = node.getHead().getLiteralText()
+  const templateSpans = node.getTemplateSpans()
+
+  for (let i = 0; i < templateSpans.length; i++) {
+    const templateSpan = templateSpans[i]
+    const templateMiddle = templateSpan.getLiteral().getLiteralText()
+    const templateSpanExpression = templateSpan.getExpression()
+    const value = evaluateInterpolation(templateSpanExpression, extra)
+    if (value === TsEvalError) return TsEvalError
+    result += (value + templateMiddle)
+  }
+
+  return result
 }
 
 function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, theme?: Theme | null): string | number | typeof TsEvalError {
