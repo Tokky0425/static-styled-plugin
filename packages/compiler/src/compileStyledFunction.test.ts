@@ -78,11 +78,10 @@ describe('evaluateInterpolation', async () => {
     }
 
     test('arrow function nested', () => {
-      // TODO
-      // const value = `
-      //   const getMainColor = (props) => () => props.theme.color.main;
-      // `
-      // assert(value, 'coral')
+      const value = `
+        const getMainColor = (props) => ({ theme }) => props.theme.color.main + theme.color.main;
+      `
+      assert(value, 'coralcoral')
     })
 
     test('arg non destructured', () => {

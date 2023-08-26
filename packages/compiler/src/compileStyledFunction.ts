@@ -4,6 +4,7 @@ import {
   ArrowFunction,
   BinaryExpression,
   BindingElement,
+  BindingName,
   Identifier,
   Node,
   PropertyAccessExpression,
@@ -214,31 +215,47 @@ export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra,
   const body = node.getBody()
   if (Node.isBinaryExpression(body) || Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
     // when function merely returns property access expression like `props.theme.fontSize.m`
-    const parent = body.getParent()
-    if (Node.isArrowFunction(parent)) {
-      const parameters = parent.getParameters()
-      const firstParameter = parameters[0]?.getNameNode()
-      if (Node.isIdentifier(firstParameter)) {
+
+    // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
+    // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
+    const params = getAllAncestorParams(body)
+    params.forEach((param) => {
+      if (Node.isIdentifier(param)) {
         // (props) => ...
         extra = {
-          [firstParameter.getFullText()]: { theme }
+          [param.getFullText()]: { theme },
+          ...extra, // to prioritize descendant's args, ...extra should come at last
         }
-      } else if (Node.isObjectBindingPattern(firstParameter)) {
+      } else if (Node.isObjectBindingPattern(param)) {
         // ({ theme }) => ...
         // ({ theme: myTheme }) => ...
         // ({ theme: { fontSize } }) => ...
-        const bindingElements = firstParameter.getElements()
+        const bindingElements = param.getElements()
         if (theme) {
-          extra = recursivelyBuildExtraBasedOnTheme(bindingElements, {
-            theme
-          })
+          extra = {
+            ...recursivelyBuildExtraBasedOnTheme(bindingElements, {
+              theme
+            }),
+            ...extra, // to prioritize descendant's args, ...extra should come at last
+          }
         }
       }
-    }
+    })
   } else if (Node.isBlock(body)) {
     // TODO: support block
   }
-  return evaluateInterpolation(body, extra, undefined, ts)
+  return evaluateInterpolation(body, extra, theme, ts)
+}
+
+function getAllAncestorParams(node: Node, params: BindingName[] = []) {
+  const parent = node.getParent()
+  if (!parent) return params
+  if (Node.isArrowFunction(parent)) {
+    const parameters = parent.getParameters()
+    const firstParameter = parameters[0]?.getNameNode()
+    firstParameter && params.push(firstParameter)
+  }
+  return getAllAncestorParams(parent, params)
 }
 
 function recursivelyBuildExtraBasedOnTheme(bindingElements: BindingElement[], themeFragment: Theme, extra: EvaluateExtra = {}): EvaluateExtra {
