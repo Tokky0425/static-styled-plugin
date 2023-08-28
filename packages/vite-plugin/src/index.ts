@@ -66,14 +66,16 @@ const injectDevelopmentCSS = (cssString: string, cssFilePath: string) => {
     if (typeof window === 'undefined') {
       return;
     }
-    const staticStyleEleId = 'static-styled_' + ${JSON.stringify(cssFilePath)};
-    let staticStyleEle = document.getElementById(staticStyleEleId);
-    if (!staticStyleEle) {
-      staticStyleEle = document.createElement('style');
-      staticStyleEle.id = staticStyleEleId;
-      document.head.appendChild(staticStyleEle);
+    const arr = Array.from(document.head.querySelectorAll('style[data-styled]'));
+    const styledComponentsEle = arr[0];
+    const staticStyledEleId = 'static-styled_' + ${JSON.stringify(cssFilePath)};
+    let staticStyledEle = document.getElementById(staticStyledEleId);
+    if (!staticStyledEle) {
+      staticStyledEle = document.createElement('style');
+      staticStyledEle.id = staticStyledEleId;
+      document.head.insertBefore(staticStyledEle, styledComponentsEle);
     }
-    staticStyleEle.textContent = ${JSON.stringify(cssString)};
+    staticStyledEle.textContent = ${JSON.stringify(cssString)};
   })();
   `
 }
