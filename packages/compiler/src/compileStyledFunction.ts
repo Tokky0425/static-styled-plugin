@@ -9,8 +9,8 @@ import {
   Node,
   PropertyAccessExpression,
   SourceFile,
+  TaggedTemplateExpression,
   TemplateExpression,
-  TemplateLiteral
 } from 'ts-morph'
 import { evaluate, IEnvironment } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
@@ -27,7 +27,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     const tagName = getTagName(node.getTag(), styledFunctionName)
     if (!tagName || !isHTMLTag(tagName)) return
 
-    const result = evaluateTaggedTemplateLiteral(node.getTemplate(), theme)
+    const result = evaluateTaggedTemplateExpression(node, {}, theme)
     if (result === TsEvalError) return
 
     const cssString = result.replace(/\s+/g, ' ').trim()
@@ -56,27 +56,6 @@ function getTagName(tag: Node, styledFunctionName: string) {
   return tagName
 }
 
-function evaluateTaggedTemplateLiteral(template: TemplateLiteral, theme: Theme | null) {
-  let result = ''
-
-  if (Node.isNoSubstitutionTemplateLiteral(template)) {
-    result = template.getLiteralText()
-  } else {
-    result = template.getHead().getLiteralText()
-    const templateSpans = template.getTemplateSpans()
-
-    for (let i = 0; i < templateSpans.length; i++) {
-      const templateSpan = templateSpans[i]
-      const templateMiddle = templateSpan.getLiteral().getLiteralText()
-      const templateSpanExpression = templateSpan.getExpression()
-      const value = evaluateInterpolation(templateSpanExpression, {}, theme)
-      if (value === TsEvalError) return TsEvalError
-      result += (value + templateMiddle)
-    }
-  }
-  return result
-}
-
 export function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme | null, ts?: typeof TS) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return node.getLiteralValue()
@@ -92,6 +71,11 @@ export function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: 
   } else if (Node.isTemplateExpression(node)) {
     // e.g. `${fontSize.m}px`
     return evaluateTemplateExpression(node, extra, ts)
+  } else if (Node.isTaggedTemplateExpression(node) && node.getTag().getFullText() === 'css') {
+    // e.g. css`
+    //   font-size: 16rem;
+    // `
+    return evaluateTaggedTemplateExpression(node, extra, theme, ts)
   } else if (Node.isArrowFunction(node)) {
     // e.g. (props) => props.fontSize.m
     return evaluateArrowFunction(node, extra, theme, ts)
@@ -208,6 +192,28 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
     result += (value + templateMiddle)
   }
 
+  return result
+}
+
+function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, theme?: Theme | null, ts?: typeof TS): string | typeof TsEvalError {
+  const template = node.getTemplate()
+  let result = ''
+
+  if (Node.isNoSubstitutionTemplateLiteral(template)) {
+    result = template.getLiteralText()
+  } else {
+    result = template.getHead().getLiteralText()
+    const templateSpans = template.getTemplateSpans()
+
+    for (let i = 0; i < templateSpans.length; i++) {
+      const templateSpan = templateSpans[i]
+      const templateMiddle = templateSpan.getLiteral().getLiteralText()
+      const templateSpanExpression = templateSpan.getExpression()
+      const value = evaluateInterpolation(templateSpanExpression, extra, theme, ts)
+      if (value === TsEvalError) return TsEvalError
+      result += (value + templateMiddle)
+    }
+  }
   return result
 }
 
