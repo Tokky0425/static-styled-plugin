@@ -61,7 +61,7 @@ type Definition = {
   cssFunctionName: string | null
 }
 
-export function evaluateInterpolation(node: Node, extra: EvaluateExtra, definition: Definition, theme?: Theme | null) {
+export function evaluateInterpolation(node: Node, extra: EvaluateExtra, definition: Definition, theme: Theme | null) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return node.getLiteralValue()
   } else if (Node.isBinaryExpression(node)) {
@@ -102,7 +102,7 @@ export function evaluateBinaryExpression(node: BinaryExpression, extra: Evaluate
   /* first, evaluate each item of binary expressions, and then evaluate the whole node */
   const items = flattenBinaryExpressions(node)
   for (const item of items) {
-    const value = evaluateInterpolation(item, extra, definition)
+    const value = evaluateInterpolation(item, extra, definition, null)
     if (value === TsEvalError) return TsEvalError
     item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
   }
@@ -192,7 +192,7 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
     const templateSpan = templateSpans[i]
     const templateMiddle = templateSpan.getLiteral().getLiteralText()
     const templateSpanExpression = templateSpan.getExpression()
-    const value = evaluateInterpolation(templateSpanExpression, extra, definition)
+    const value = evaluateInterpolation(templateSpanExpression, extra, definition, null)
     if (value === TsEvalError) return TsEvalError
     result += (value + templateMiddle)
   }
@@ -200,7 +200,7 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
   return result
 }
 
-function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, definition: Definition, theme?: Theme | null): string | typeof TsEvalError {
+function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | typeof TsEvalError {
   const template = node.getTemplate()
   let result = ''
 
@@ -222,7 +222,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
   return result
 }
 
-export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme?: Theme | null): string | number | typeof TsEvalError {
+export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | number | typeof TsEvalError {
   const body = node.getBody()
   if (Node.isBinaryExpression(body) || Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
     // when function merely returns property access expression like `props.theme.fontSize.m`
