@@ -24,7 +24,7 @@ test('evaluateBinaryExpression', async () => {
   const value = '2 + 3';
   const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
   const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.BinaryExpression)
-  const result = evaluateBinaryExpression(node as BinaryExpression, {}, ts)
+  const result = evaluateBinaryExpression(node as BinaryExpression, {}, { ts, cssFunctionName: null } )
   expect(result).toBe(5)
 })
 
@@ -36,7 +36,7 @@ test('evaluatePropertyAccessExpression', async () => {
   `
   const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
   const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.PropertyAccessExpression)
-  const result = evaluatePropertyAccessExpression(node as PropertyAccessExpression, {}, ts)
+  const result = evaluatePropertyAccessExpression(node as PropertyAccessExpression, {}, { ts, cssFunctionName: null })
   expect(result).toBe('Jack Sparrow')
 })
 
@@ -48,7 +48,7 @@ test('evaluateIdentifier', async () => {
   `
   const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
   const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.Identifier)
-  const result = evaluateIdentifier(node as Identifier, {}, ts)
+  const result = evaluateIdentifier(node as Identifier, {}, { ts, cssFunctionName: null })
   expect(result).toBe('Jack Sparrow')
 })
 
@@ -61,7 +61,7 @@ test('evaluateTemplateExpression', async () => {
   `
   const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
   const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.TemplateExpression)
-  const result = evaluateTemplateExpression(node as TemplateExpression, {}, ts)
+  const result = evaluateTemplateExpression(node as TemplateExpression, {}, { ts, cssFunctionName: null })
   expect(result).toBe('5')
 })
 
@@ -73,7 +73,7 @@ describe('evaluateInterpolation', async () => {
     const assert = (value: string, expectedResult: ReturnType<typeof evaluateInterpolation>) => {
       const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
       const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.ArrowFunction)
-      const result = evaluateInterpolation(node as ArrowFunction, {}, theme, ts)
+      const result = evaluateInterpolation(node as ArrowFunction, {}, { ts, cssFunctionName: null }, theme)
       expect(result).toBe(expectedResult)
     }
 
@@ -119,7 +119,7 @@ describe('evaluateInterpolation', async () => {
     const assert = (value: string, expectedResult: ReturnType<typeof evaluateInterpolation>) => {
       const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
       const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.ArrowFunction)
-      const result = evaluateInterpolation(node as ArrowFunction, {}, undefined, ts)
+      const result = evaluateInterpolation(node as ArrowFunction, {}, { ts, cssFunctionName: null }, null)
       expect(result).toBe(expectedResult)
     }
 
