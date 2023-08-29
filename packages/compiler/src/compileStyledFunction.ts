@@ -20,14 +20,14 @@ import { Theme } from './types'
 export const TsEvalError = Symbol('EvalError')
 type EvaluateExtra = IEnvironment['extra']
 
-export function compileStyledFunction(file: SourceFile, styledFunctionName: string, theme: Theme | null) {
+export function compileStyledFunction(file: SourceFile, styledFunctionName: string, cssFunctionName: string | null, theme: Theme | null) {
   file.forEachDescendant((node) => {
     if (!Node.isTaggedTemplateExpression(node)) return
 
     const tagName = getTagName(node.getTag(), styledFunctionName)
     if (!tagName || !isHTMLTag(tagName)) return
 
-    const result = evaluateTaggedTemplateExpression(node, {}, theme)
+    const result = evaluateTaggedTemplateExpression(node, {}, theme, { cssFunctionName })
     if (result === TsEvalError) return
 
     const cssString = result.replace(/\s+/g, ' ').trim()
@@ -56,29 +56,34 @@ function getTagName(tag: Node, styledFunctionName: string) {
   return tagName
 }
 
-export function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme | null, ts?: typeof TS) {
+type Definition = {
+  ts?: typeof TS
+  cssFunctionName: string | null
+}
+
+export function evaluateInterpolation(node: Node, extra: EvaluateExtra, theme?: Theme | null, definition?: Definition) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return node.getLiteralValue()
   } else if (Node.isBinaryExpression(node)) {
     // e.g. width * 2
-    return evaluateBinaryExpression(node, extra, ts)
+    return evaluateBinaryExpression(node, extra, definition)
   } else if (Node.isPropertyAccessExpression(node)) {
     // e.g. theme.fontSize.m
-    return evaluatePropertyAccessExpression(node, extra, ts)
+    return evaluatePropertyAccessExpression(node, extra, definition)
   } else if (Node.isIdentifier(node)) {
     // e.g. width
-    return evaluateIdentifier(node, extra, ts)
+    return evaluateIdentifier(node, extra, definition)
   } else if (Node.isTemplateExpression(node)) {
     // e.g. `${fontSize.m}px`
-    return evaluateTemplateExpression(node, extra, ts)
-  } else if (Node.isTaggedTemplateExpression(node) && node.getTag().getFullText() === 'css') {
+    return evaluateTemplateExpression(node, extra, definition)
+  } else if (Node.isTaggedTemplateExpression(node) && definition?.cssFunctionName && node.getTag().getFullText() === definition.cssFunctionName) {
     // e.g. css`
     //   font-size: 16rem;
     // `
-    return evaluateTaggedTemplateExpression(node, extra, theme, ts)
+    return evaluateTaggedTemplateExpression(node, extra, theme, definition)
   } else if (Node.isArrowFunction(node)) {
     // e.g. (props) => props.fontSize.m
-    return evaluateArrowFunction(node, extra, theme, ts)
+    return evaluateArrowFunction(node, extra, theme, definition)
   } else {
     return TsEvalError
   }
@@ -93,18 +98,18 @@ function flattenBinaryExpressions(node: BinaryExpression): Node[] {
     return [left, right]
   }
 }
-export function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, ts?: typeof TS): string | number | typeof TsEvalError {
+export function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, definition?: Definition): string | number | typeof TsEvalError {
   /* first, evaluate each item of binary expressions, and then evaluate the whole node */
   const items = flattenBinaryExpressions(node)
   for (const item of items) {
-    const value = evaluateInterpolation(item, extra, undefined, ts)
+    const value = evaluateInterpolation(item, extra, undefined, definition)
     if (value === TsEvalError) return TsEvalError
     item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
   }
 
   const evaluated = evaluate({
     node: node.compilerNode,
-    typescript: ts,
+    typescript: definition?.ts,
     environment: { extra }
   })
   if (evaluated.success) {
@@ -114,7 +119,7 @@ export function evaluateBinaryExpression(node: BinaryExpression, extra: Evaluate
   return TsEvalError
 }
 
-export function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, ts?: typeof TS): string | number | typeof TsEvalError {
+export function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, definition?: Definition): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -125,7 +130,7 @@ export function evaluatePropertyAccessExpression(node: PropertyAccessExpression,
     if (!propertyInitializer) continue
     const evaluated = evaluate({
       node: propertyInitializer.compilerNode,
-      typescript: ts,
+      typescript: definition?.ts,
       environment: { extra }
     })
     if (!evaluated.success) continue
@@ -135,7 +140,7 @@ export function evaluatePropertyAccessExpression(node: PropertyAccessExpression,
   if (!value && extra) {
     const evaluated = evaluate({
       node: node.compilerNode,
-      typescript: ts,
+      typescript: definition?.ts,
       environment: { extra }
     })
     if (evaluated.success) {
@@ -147,7 +152,7 @@ export function evaluatePropertyAccessExpression(node: PropertyAccessExpression,
   return TsEvalError
 }
 
-export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, ts?: typeof TS): string | number | typeof TsEvalError {
+export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition?: Definition): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -157,7 +162,7 @@ export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, ts?: 
 
     const evaluated = evaluate({
       node: nodeParent.compilerNode,
-      typescript: ts,
+      typescript: definition?.ts,
       environment: { extra }
     })
     if (!evaluated.success) continue
@@ -167,7 +172,7 @@ export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, ts?: 
   if (!value && extra) {
     const evaluated = evaluate({
       node: node.compilerNode,
-      typescript: ts,
+      typescript: definition?.ts,
       environment: { extra }
     })
     if (evaluated.success) {
@@ -179,7 +184,7 @@ export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, ts?: 
   return TsEvalError
 }
 
-export function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, ts?: typeof TS): string | typeof TsEvalError {
+export function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, definition?: Definition): string | typeof TsEvalError {
   let result = node.getHead().getLiteralText()
   const templateSpans = node.getTemplateSpans()
 
@@ -187,7 +192,7 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
     const templateSpan = templateSpans[i]
     const templateMiddle = templateSpan.getLiteral().getLiteralText()
     const templateSpanExpression = templateSpan.getExpression()
-    const value = evaluateInterpolation(templateSpanExpression, extra, undefined, ts)
+    const value = evaluateInterpolation(templateSpanExpression, extra, undefined, definition)
     if (value === TsEvalError) return TsEvalError
     result += (value + templateMiddle)
   }
@@ -195,7 +200,7 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
   return result
 }
 
-function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, theme?: Theme | null, ts?: typeof TS): string | typeof TsEvalError {
+function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, theme?: Theme | null, definition?: Definition): string | typeof TsEvalError {
   const template = node.getTemplate()
   let result = ''
 
@@ -209,7 +214,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
       const templateSpan = templateSpans[i]
       const templateMiddle = templateSpan.getLiteral().getLiteralText()
       const templateSpanExpression = templateSpan.getExpression()
-      const value = evaluateInterpolation(templateSpanExpression, extra, theme, ts)
+      const value = evaluateInterpolation(templateSpanExpression, extra, theme, definition)
       if (value === TsEvalError) return TsEvalError
       result += (value + templateMiddle)
     }
@@ -217,7 +222,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
   return result
 }
 
-export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, theme?: Theme | null, ts?: typeof TS): string | number | typeof TsEvalError {
+export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, theme?: Theme | null, definition?: Definition): string | number | typeof TsEvalError {
   const body = node.getBody()
   if (Node.isBinaryExpression(body) || Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
     // when function merely returns property access expression like `props.theme.fontSize.m`
@@ -250,7 +255,7 @@ export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra,
   } else if (Node.isBlock(body)) {
     // TODO: support block
   }
-  return evaluateInterpolation(body, extra, theme, ts)
+  return evaluateInterpolation(body, extra, theme, definition)
 }
 
 function getAllAncestorParams(node: Node, params: BindingName[] = []) {
