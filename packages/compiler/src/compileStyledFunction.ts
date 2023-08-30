@@ -8,6 +8,7 @@ import {
   Identifier,
   Node,
   PropertyAccessExpression,
+  ReturnStatement,
   SourceFile,
   TaggedTemplateExpression,
   TemplateExpression,
@@ -224,38 +225,41 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
 
 export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | number | typeof TsEvalError {
   const body = node.getBody()
-  if (Node.isBinaryExpression(body) || Node.isIdentifier(body) || Node.isPropertyAccessExpression(body) || Node.isTemplateExpression(body)) {
-    // when function merely returns property access expression like `props.theme.fontSize.m`
-
-    // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
-    // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
-    const params = getAllAncestorParams(body)
-    params.forEach((param) => {
-      if (Node.isIdentifier(param)) {
-        // (props) => ...
+  // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
+  // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
+  const params = getAllAncestorParams(body)
+  params.forEach((param) => {
+    if (Node.isIdentifier(param)) {
+      // (props) => ...
+      extra = {
+        [param.getFullText()]: { theme },
+        ...extra, // to prioritize descendant's args, ...extra should come at last
+      }
+    } else if (Node.isObjectBindingPattern(param)) {
+      // ({ theme }) => ...
+      // ({ theme: myTheme }) => ...
+      // ({ theme: { fontSize } }) => ...
+      const bindingElements = param.getElements()
+      if (theme) {
         extra = {
-          [param.getFullText()]: { theme },
+          ...recursivelyBuildExtraBasedOnTheme(bindingElements, {
+            theme
+          }),
           ...extra, // to prioritize descendant's args, ...extra should come at last
         }
-      } else if (Node.isObjectBindingPattern(param)) {
-        // ({ theme }) => ...
-        // ({ theme: myTheme }) => ...
-        // ({ theme: { fontSize } }) => ...
-        const bindingElements = param.getElements()
-        if (theme) {
-          extra = {
-            ...recursivelyBuildExtraBasedOnTheme(bindingElements, {
-              theme
-            }),
-            ...extra, // to prioritize descendant's args, ...extra should come at last
-          }
-        }
       }
-    })
-  } else if (Node.isBlock(body)) {
-    // TODO: support block
+    }
+  })
+
+  if (Node.isBlock(body)) {
+    const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
+    if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
+    const expression = returnStatements[0].getExpression()
+    if (!expression) return TsEvalError
+    return evaluateInterpolation(expression, extra, definition, theme)
+  } else {
+    return evaluateInterpolation(body, extra, definition, theme)
   }
-  return evaluateInterpolation(body, extra, definition, theme)
 }
 
 function getAllAncestorParams(node: Node, params: BindingName[] = []) {
