@@ -64,16 +64,16 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
   })
 }
 
-function getTagName(tag: Node, styledFunctionName: string): string | null {
+function getTagName(node: Node, styledFunctionName: string): string | null {
   let tagName: string | null = null
-  if (/* e.g. styled('p') */ Node.isCallExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
-    const arg = tag.getArguments()[0]
+  if (/* e.g. styled('p') */ Node.isCallExpression(node) && node.compilerNode.expression.getText() === styledFunctionName) {
+    const arg = node.getArguments()[0]
     tagName = Node.isStringLiteral(arg) ? arg.getLiteralValue() : null
-  } else if (/* e.g. styled.p */ Node.isPropertyAccessExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
-    tagName = tag.compilerNode.name.getText() ?? null
-  } else if (Node.isCallExpression(tag) || Node.isPropertyAccessExpression(tag)) {
+  } else if (/* e.g. styled.p */ Node.isPropertyAccessExpression(node) && node.compilerNode.expression.getText() === styledFunctionName) {
+    tagName = node.compilerNode.name.getText() ?? null
+  } else if (Node.isCallExpression(node) || Node.isPropertyAccessExpression(node)) {
     // for when .attrs is used
-    const expression = tag.getExpression()
+    const expression = node.getExpression()
     if (Node.isCallExpression(expression) || Node.isPropertyAccessExpression(expression)) {
       tagName = getTagName(expression, styledFunctionName)
     }
@@ -86,11 +86,11 @@ type GetAttrsResult = {
   text: string,
 }
 
-function getAttrs(tag: Node): GetAttrsResult[] {
+function getAttrs(node: Node): GetAttrsResult[] {
   let result: GetAttrsResult[] = []
 
-  if (!Node.isCallExpression(tag)) return result
-  const expression = tag.getExpression()
+  if (!Node.isCallExpression(node)) return result
+  const expression = node.getExpression()
   if (!(Node.isPropertyAccessExpression(expression) && expression.getName() === 'attrs')) return result
 
   // recursively call getAttrs because attrs can be chained
@@ -101,7 +101,7 @@ function getAttrs(tag: Node): GetAttrsResult[] {
     result = [...nextExpressionResult]
   }
 
-  const argument = tag.getArguments()[0]
+  const argument = node.getArguments()[0]
   if (Node.isArrowFunction(argument)) {
     return [...result, {
       nodeKindName: 'ArrowFunction' as const,
