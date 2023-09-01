@@ -25,7 +25,9 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
   file.forEachDescendant((node) => {
     if (!Node.isTaggedTemplateExpression(node)) return
 
-    const tagName = getTagName(node.getTag(), styledFunctionName)
+    const tagNode = node.getTag()
+    const tagName = getTagName(tagNode, styledFunctionName)
+    const attrsArr = getAttrs(tagNode)
     if (!tagName || !isHTMLTag(tagName)) return
 
     const result = evaluateTaggedTemplateExpression(node, {}, { cssFunctionName }, theme)
@@ -36,23 +38,45 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     const className = `static-styled-${classNameHash}`
     styleRegistry.addRule(classNameHash, cssString)
 
+    const attrsDeclaration = attrsArr.map((attrs, index) => `const attrs${index} = ${attrs.text}`).join('\n')
+    const attrsProps = attrsArr.map((attrs, index) => {
+      switch (attrs.nodeKindName) {
+        case 'ArrowFunction':
+          return `...attrs${index}(props)`
+        case 'ObjectLiteralExpression':
+          return `...attrs${index}`
+        default:
+          const neverValue: never = attrs.nodeKindName
+          throw new Error(`${neverValue}`)
+
+      }
+    }).join(', ')
+
     node.replaceWithText(`
     (props: any) => {
-      const inheritedClassName = props.className ?? '';
-      const joinedClassName = \`\${inheritedClassName} ${className}\`.trim();
-      return <${tagName} { ...props } className={joinedClassName} />;
+      ${attrsDeclaration}
+      const attrsProps = { ${attrsProps} }
+      const propsWithAttrs = { ...props, ...attrsProps }
+      const joinedClassName = \`${className} \$\{attrsProps.className ?? ''\} \${props.className ?? ''}\`.trim();
+      return <${tagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
   `)
   })
 }
 
-function getTagName(tag: Node, styledFunctionName: string) {
+function getTagName(tag: Node, styledFunctionName: string): string | null {
   let tagName: string | null = null
   if (/* e.g. styled('p') */ Node.isCallExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
     const arg = tag.getArguments()[0]
     tagName = Node.isStringLiteral(arg) ? arg.getLiteralValue() : null
   } else if (/* e.g. styled.p */ Node.isPropertyAccessExpression(tag) && tag.compilerNode.expression.getText() === styledFunctionName) {
     tagName = tag.compilerNode.name.getText() ?? null
+  } else if (Node.isCallExpression(tag) || Node.isPropertyAccessExpression(tag)) {
+    // for when .attrs is used
+    const expression = tag.getExpression()
+    if (Node.isCallExpression(expression) || Node.isPropertyAccessExpression(expression)) {
+      tagName = getTagName(expression, styledFunctionName)
+    }
   }
   return tagName
 }
