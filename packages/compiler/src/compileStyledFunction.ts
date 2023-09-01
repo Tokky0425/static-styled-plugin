@@ -57,6 +57,42 @@ function getTagName(tag: Node, styledFunctionName: string) {
   return tagName
 }
 
+type GetAttrsResult = {
+  nodeKindName: 'ArrowFunction' | 'ObjectLiteralExpression',
+  text: string,
+}
+
+function getAttrs(tag: Node): GetAttrsResult[] {
+  let result: GetAttrsResult[] = []
+
+  if (!Node.isCallExpression(tag)) return result
+  const expression = tag.getExpression()
+  if (!(Node.isPropertyAccessExpression(expression) && expression.getName() === 'attrs')) return result
+
+  // recursively call getAttrs because attrs can be chained
+  // e.g. const Text = styled.p.attrs().attrs()``
+  const nextExpression = expression.getExpression()
+  const nextExpressionResult = getAttrs(nextExpression)
+  if (nextExpressionResult) {
+    result = [...nextExpressionResult]
+  }
+
+  const argument = tag.getArguments()[0]
+  if (Node.isArrowFunction(argument)) {
+    return [...result, {
+      nodeKindName: 'ArrowFunction' as const,
+      text: argument.getFullText()
+    }]
+  } else if (Node.isObjectLiteralExpression(argument)) {
+    return [...result, {
+      nodeKindName: 'ObjectLiteralExpression' as const,
+      text: argument.getFullText()
+    }]
+  } else {
+    throw new Error('unexpected expression for attrs')
+  }
+}
+
 type Definition = {
   ts?: typeof TS
   cssFunctionName: string | null
