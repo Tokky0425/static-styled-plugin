@@ -64,7 +64,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
   })
 }
 
-function getTagName(node: Node, styledFunctionName: string): string | null {
+export function getTagName(node: Node, styledFunctionName: string): string | null {
   let tagName: string | null = null
   if (/* e.g. styled('p') */ Node.isCallExpression(node) && node.compilerNode.expression.getText() === styledFunctionName) {
     const arg = node.getArguments()[0]
@@ -86,7 +86,7 @@ type GetAttrsResult = {
   text: string,
 }
 
-function getAttrs(node: Node): GetAttrsResult[] {
+export function getAttrs(node: Node): GetAttrsResult[] {
   let result: GetAttrsResult[] = []
 
   if (!Node.isCallExpression(node)) return result
