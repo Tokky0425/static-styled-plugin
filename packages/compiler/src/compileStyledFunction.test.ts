@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import {describe, expect, test} from 'vitest'
 import {
   ArrowFunction,
   BinaryExpression,
@@ -13,8 +13,8 @@ import {
   evaluateBinaryExpression,
   evaluateIdentifier,
   evaluatePropertyAccessExpression,
-  evaluateTemplateExpression,
   evaluateSyntax,
+  evaluateTemplateExpression,
   getAttrs,
   getTagName,
   TsEvalError,
@@ -215,7 +215,7 @@ describe('evaluateInterpolation', async () => {
   const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>) => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
     const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.ArrowFunction)
-    const result = evaluateSyntax(node as ArrowFunction, {}, { ts, cssFunctionName: null }, theme)
+    const result = evaluateSyntax(node as ArrowFunction, {}, { ts, cssFunctionName: 'css' }, theme)
     expect(result).toBe(expectedResult)
   }
 
@@ -274,6 +274,31 @@ describe('evaluateInterpolation', async () => {
     assert(value, 'coral')
   })
 
+  describe('TemplateExpression', () => {
+    test('NoSubstitutionTemplateLiteral', () => {
+      const value = `
+        const getMainColor = () => \`coral\`
+      `
+      assert(value, 'coral')
+    })
+
+    describe('SubstitutionTemplateLiteral', () => {
+      test('with css function', () => {
+        const value = `
+          const getMainColor = () => \`\${css\`color: coral;\`}\`
+        `
+        assert(value, 'color: coral;')
+      })
+
+      test('with not css function', () => {
+        const value = `
+          const getMainColor = () => \`\${foo\`color: coral;\`}\`
+        `
+        assert(value, TsEvalError)
+      })
+    })
+  })
+
   describe('ArrowFunction', () => {
     test('nested', () => {
       const value = `
@@ -328,6 +353,9 @@ describe('evaluateInterpolation', async () => {
     // const value = `
     //   const joinStr = (a: string, b: string) => a + b
     //   const getMainColor = () => joinStr('co', 'ral');
+    // `
+    // const value = `
+    //   const getMainColor = () => \`${css({ color: 'coral' })}\`
     // `
   })
 })
