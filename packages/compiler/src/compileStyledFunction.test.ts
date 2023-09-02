@@ -1,20 +1,12 @@
 import {describe, expect, test} from 'vitest'
 import {
   ArrowFunction,
-  BinaryExpression,
-  Identifier,
   Project,
-  PropertyAccessExpression,
   SyntaxKind,
   TaggedTemplateExpression,
-  TemplateExpression
 } from 'ts-morph'
 import {
-  evaluateBinaryExpression,
-  evaluateIdentifier,
-  evaluatePropertyAccessExpression,
   evaluateSyntax,
-  evaluateTemplateExpression,
   getAttrs,
   getTagName,
   TsEvalError,
@@ -163,51 +155,6 @@ describe('getAttrs', () => {
   })
 })
 
-test('evaluateBinaryExpression', async () => {
-  const ts = (await import('typescript')).default
-  const value = '2 + 3';
-  const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-  const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.BinaryExpression)
-  const result = evaluateBinaryExpression(node as BinaryExpression, {}, { ts, cssFunctionName: null } )
-  expect(result).toBe(5)
-})
-
-test('evaluatePropertyAccessExpression', async () => {
-  const ts = (await import('typescript')).default
-  const value = `
-    const user = { name: 'Jack Sparrow' };
-    user.name
-  `
-  const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-  const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.PropertyAccessExpression)
-  const result = evaluatePropertyAccessExpression(node as PropertyAccessExpression, {}, { ts, cssFunctionName: null })
-  expect(result).toBe('Jack Sparrow')
-})
-
-test('evaluateIdentifier', async () => {
-  const ts = (await import('typescript')).default
-  const value = `
-    const userName = 'Jack Sparrow';
-    userName
-  `
-  const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-  const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.Identifier)
-  const result = evaluateIdentifier(node as Identifier, {}, { ts, cssFunctionName: null })
-  expect(result).toBe('Jack Sparrow')
-})
-
-test('evaluateTemplateExpression', async () => {
-  const ts = (await import('typescript')).default
-  const value = `
-    const a = 2;
-    const b = 3;
-    \`\$\{a + b\}\`
-  `
-  const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-  const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.TemplateExpression)
-  const result = evaluateTemplateExpression(node as TemplateExpression, {}, { ts, cssFunctionName: null })
-  expect(result).toBe('5')
-})
 
 describe('evaluateInterpolation', async () => {
   const ts = (await import('typescript')).default

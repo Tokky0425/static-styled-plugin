@@ -159,7 +159,7 @@ function flattenBinaryExpressions(node: BinaryExpression): Node[] {
     return [left, right]
   }
 }
-export function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
   /* first, evaluate each item of binary expressions, and then evaluate the whole node */
   const items = flattenBinaryExpressions(node)
   for (const item of items) {
@@ -180,7 +180,7 @@ export function evaluateBinaryExpression(node: BinaryExpression, extra: Evaluate
   return TsEvalError
 }
 
-export function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -213,7 +213,7 @@ export function evaluatePropertyAccessExpression(node: PropertyAccessExpression,
   return TsEvalError
 }
 
-export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -245,7 +245,7 @@ export function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, defin
   return TsEvalError
 }
 
-export function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, definition: Definition): string | typeof TsEvalError {
+function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, definition: Definition): string | typeof TsEvalError {
   let result = node.getHead().getLiteralText()
   const templateSpans = node.getTemplateSpans()
 
@@ -283,7 +283,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
   return result
 }
 
-export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | number | typeof TsEvalError {
+function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | number | typeof TsEvalError {
   const body = node.getBody()
   // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
   // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
