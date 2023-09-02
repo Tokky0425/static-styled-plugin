@@ -6,7 +6,7 @@ class StyleRegistry {
   ruleMap: RuleMap
 
   constructor() {
-    this.ruleMap = {}
+    this.ruleMap = {} // this can be just an array, but leave it as it is for the convenience of the future
   }
   addRule(classNameHash: string, cssString: string,) {
     this.ruleMap[classNameHash] = cssString
@@ -24,7 +24,7 @@ class StyleRegistry {
     let result = ''
 
     Object.keys(this.ruleMap).forEach((classNameHash) => {
-      result += `.static-styled-${classNameHash}{${this.ruleMap[classNameHash]}}`
+      result += this.ruleMap[classNameHash]
     })
 
     return result

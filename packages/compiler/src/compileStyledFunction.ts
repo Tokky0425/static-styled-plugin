@@ -16,6 +16,7 @@ import {
 import { evaluate, IEnvironment } from 'ts-evaluator'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
+import { compileCssString } from './compileCssString'
 import { Theme } from './types'
 
 export const TsEvalError = Symbol('EvalError')
@@ -36,7 +37,8 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     const cssString = result.replace(/\s+/g, ' ').trim()
     const classNameHash = generateHash(cssString)
     const className = `static-styled-${classNameHash}`
-    styleRegistry.addRule(classNameHash, cssString)
+    const compiledCssString = compileCssString(cssString, className)
+    styleRegistry.addRule(classNameHash, compiledCssString)
 
     const attrsDeclaration = attrsArr.map((attrs, index) => `const attrs${index} = ${attrs.text}`).join('\n')
     const attrsProps = attrsArr.map((attrs, index) => {
