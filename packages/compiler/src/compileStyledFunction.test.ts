@@ -14,7 +14,7 @@ import {
   evaluateIdentifier,
   evaluatePropertyAccessExpression,
   evaluateTemplateExpression,
-  evaluateInterpolation,
+  evaluateSyntax,
   getAttrs,
   getTagName,
   TsEvalError,
@@ -212,10 +212,10 @@ test('evaluateTemplateExpression', async () => {
 describe('evaluateInterpolation', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
-  const assert = (value: string, expectedResult: ReturnType<typeof evaluateInterpolation>) => {
+  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>) => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
     const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.ArrowFunction)
-    const result = evaluateInterpolation(node as ArrowFunction, {}, { ts, cssFunctionName: null }, theme)
+    const result = evaluateSyntax(node as ArrowFunction, {}, { ts, cssFunctionName: null }, theme)
     expect(result).toBe(expectedResult)
   }
 

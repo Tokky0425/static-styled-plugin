@@ -122,7 +122,7 @@ type Definition = {
   cssFunctionName: string | null
 }
 
-export function evaluateInterpolation(node: Node, extra: EvaluateExtra, definition: Definition, theme: Theme | null) {
+export function evaluateSyntax(node: Node, extra: EvaluateExtra, definition: Definition, theme: Theme | null) {
   if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
     return node.getLiteralValue()
   } else if (Node.isBinaryExpression(node)) {
@@ -163,7 +163,7 @@ export function evaluateBinaryExpression(node: BinaryExpression, extra: Evaluate
   /* first, evaluate each item of binary expressions, and then evaluate the whole node */
   const items = flattenBinaryExpressions(node)
   for (const item of items) {
-    const value = evaluateInterpolation(item, extra, definition, null)
+    const value = evaluateSyntax(item, extra, definition, null)
     if (value === TsEvalError) return TsEvalError
     item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
   }
@@ -253,7 +253,7 @@ export function evaluateTemplateExpression(node: TemplateExpression, extra: Eval
     const templateSpan = templateSpans[i]
     const templateMiddle = templateSpan.getLiteral().getLiteralText()
     const templateSpanExpression = templateSpan.getExpression()
-    const value = evaluateInterpolation(templateSpanExpression, extra, definition, null)
+    const value = evaluateSyntax(templateSpanExpression, extra, definition, null)
     if (value === TsEvalError) return TsEvalError
     result += (value + templateMiddle)
   }
@@ -275,7 +275,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
       const templateSpan = templateSpans[i]
       const templateMiddle = templateSpan.getLiteral().getLiteralText()
       const templateSpanExpression = templateSpan.getExpression()
-      const value = evaluateInterpolation(templateSpanExpression, extra, definition, theme)
+      const value = evaluateSyntax(templateSpanExpression, extra, definition, theme)
       if (value === TsEvalError) return TsEvalError
       result += (value + templateMiddle)
     }
@@ -316,9 +316,9 @@ export function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra,
     if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
     const expression = returnStatements[0].getExpression()
     if (!expression) return TsEvalError
-    return evaluateInterpolation(expression, extra, definition, theme)
+    return evaluateSyntax(expression, extra, definition, theme)
   } else {
-    return evaluateInterpolation(body, extra, definition, theme)
+    return evaluateSyntax(body, extra, definition, theme)
   }
 }
 
