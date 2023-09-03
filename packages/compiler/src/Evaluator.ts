@@ -38,7 +38,7 @@ export class Evaluator {
     this.theme = props.theme
   }
 
-  evaluateSyntax(node: Node): PrimitiveType | ObjectType | ErrorType {
+  evaluateSyntax(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ErrorType {
     if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
       return this.evaluateBinaryExpression(node)
@@ -51,14 +51,14 @@ export class Evaluator {
     } else if (Node.isTemplateExpression(node)) {
       // e.g. `${fontSize.m}px`
       return this.evaluateTemplateExpression(node)
-    } else if (Node.isTaggedTemplateExpression(node) && this.definition.cssFunctionName && node.getTag().getFullText() === this.definition.cssFunctionName) {
+    } else if (Node.isTaggedTemplateExpression(node) && this.definition.cssFunctionName && node.getTag().getText() === this.definition.cssFunctionName) {
       // e.g. css`
       //   font-size: 16rem;
       // `
-      return this.evaluateTaggedTemplateExpression(node)
-    } else if (Node.isArrowFunction(node)) {
+      return this.evaluateStyledTaggedTemplateExpression(node)
+    } else if (Node.isArrowFunction(node) && inStyledFunction) {
       // e.g. (props) => props.fontSize.m
-      return this.evaluateArrowFunction(node)
+      return this.evaluateStyledArrowFunction(node)
     } else if (Node.isObjectLiteralExpression(node)) {
       // for when parsing theme
       return this.evaluateObjectLiteralExpression(node)
@@ -166,7 +166,7 @@ export class Evaluator {
     return result
   }
 
-  evaluateTaggedTemplateExpression(node: TaggedTemplateExpression) {
+  evaluateStyledTaggedTemplateExpression(node: TaggedTemplateExpression) {
     const template = node.getTemplate()
     let result = ''
 
@@ -180,7 +180,7 @@ export class Evaluator {
         const templateSpan = templateSpans[i]
         const templateMiddle = templateSpan.getLiteral().getLiteralText()
         const templateSpanExpression = templateSpan.getExpression()
-        const value = this.evaluateSyntax(templateSpanExpression)
+        const value = this.evaluateSyntax(templateSpanExpression, true)
         if (value === TsEvalError) return TsEvalError
         result += (value + templateMiddle)
       }
@@ -216,7 +216,7 @@ export class Evaluator {
     return TsEvalError
   }
 
-  evaluateArrowFunction(node: ArrowFunction) {
+  evaluateStyledArrowFunction(node: ArrowFunction) {
     const body = node.getBody()
     // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
     // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
@@ -251,7 +251,7 @@ export class Evaluator {
       if (!expression) return TsEvalError
       return this.evaluateSyntax(expression)
     } else {
-      return this.evaluateSyntax(body)
+      return this.evaluateSyntax(body, true) // inStyledFunction needs to be true for higher order function like `(props) => ({ theme }) => ...`
     }
   }
 

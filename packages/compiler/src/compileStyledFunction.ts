@@ -15,7 +15,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     const attrsArr = getAttrs(tagNode)
     if (!tagName || !isHTMLTag(tagName)) return
     const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName }, theme })
-    const result = evaluator.evaluateTaggedTemplateExpression(node)
+    const result = evaluator.evaluateStyledTaggedTemplateExpression(node)
     if (result === TsEvalError) return
 
     const cssString = result.replace(/\s+/g, ' ').trim()
