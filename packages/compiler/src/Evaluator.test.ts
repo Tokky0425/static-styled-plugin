@@ -20,7 +20,7 @@ describe('Evaluator', async () => {
       const mainColor = 'coral';
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.StringLiteral)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   test('NumericLiteral', () => {
@@ -28,7 +28,7 @@ describe('Evaluator', async () => {
       const number = 20;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.NumericLiteral)
-    expect(evaluator.evaluateSyntax(node)).toBe(20)
+    expect(evaluator.evaluateNode(node)).toBe(20)
   })
 
   test('NoSubstitutionTemplateLiteral', () => {
@@ -36,7 +36,7 @@ describe('Evaluator', async () => {
       const mainColor = \`coral\`;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.NoSubstitutionTemplateLiteral)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   test('PropertyAccessExpression', () => {
@@ -45,7 +45,7 @@ describe('Evaluator', async () => {
       const mainColor = theme.color.main;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   test('BinaryExpression', () => {
@@ -55,7 +55,7 @@ describe('Evaluator', async () => {
       const mainColor = a + b;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.BinaryExpression)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   test('Identifier', () => {
@@ -64,7 +64,7 @@ describe('Evaluator', async () => {
       const mainColor = color;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.Identifier)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   test('TemplateExpression', () => {
@@ -74,7 +74,7 @@ describe('Evaluator', async () => {
       const mainColor = \`\$\{a + b\}\`;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.TemplateExpression)
-    expect(evaluator.evaluateSyntax(node)).toBe('coral')
+    expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
   describe('TemplateExpression', () => {
@@ -83,7 +83,7 @@ describe('Evaluator', async () => {
         const mainColor = \`coral\`;
       `
       const [evaluator, node] = getFirstNode(value, SyntaxKind.NoSubstitutionTemplateLiteral)
-      expect(evaluator.evaluateSyntax(node)).toBe('coral')
+      expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
     describe('SubstitutionTemplateLiteral', () => {
@@ -92,7 +92,7 @@ describe('Evaluator', async () => {
           const getMainColor = () => \`\${css\`color: coral;\`}\`
         `
         const [evaluator, node] = getFirstNode(value, SyntaxKind.TaggedTemplateExpression)
-        expect(evaluator.evaluateSyntax(node)).toBe('color: coral;')
+        expect(evaluator.evaluateNode(node)).toBe('color: coral;')
       })
 
       test('with not css function', () => {
@@ -100,7 +100,7 @@ describe('Evaluator', async () => {
           const getMainColor = () => \`\${foo\`color: coral;\`}\`
         `
         const [evaluator, node] = getFirstNode(value, SyntaxKind.TaggedTemplateExpression)
-        expect(evaluator.evaluateSyntax(node)).toBe(TsEvalError)
+        expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
       })
     })
   })
@@ -112,7 +112,7 @@ describe('Evaluator', async () => {
           const getMainColor = (props) => ({ theme }) => props.theme.color.main + theme.color.main;
         `
         const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-        expect(evaluator.evaluateSyntax(node, true)).toBe('coralcoral')
+        expect(evaluator.evaluateNode(node, true)).toBe('coralcoral')
       })
 
       test('arg non destructured', () => {
@@ -120,7 +120,7 @@ describe('Evaluator', async () => {
           const getMainColor = (props) => props.theme.color.main;
         `
         const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-        expect(evaluator.evaluateSyntax(node, true)).toBe('coral')
+        expect(evaluator.evaluateNode(node, true)).toBe('coral')
       })
 
       describe('arg destructured', () => {
@@ -129,7 +129,7 @@ describe('Evaluator', async () => {
             const getMainColor = ({ theme }) => theme.color.main;
           `
           const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-          expect(evaluator.evaluateSyntax(node, true)).toBe('coral')
+          expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
 
         test('with rename', () => {
@@ -137,7 +137,7 @@ describe('Evaluator', async () => {
             const getMainColor = ({ theme: myTheme }) => myTheme.color.main;
           `
           const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-          expect(evaluator.evaluateSyntax(node, true)).toBe('coral')
+          expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
 
         test('other than "theme"', () => {
@@ -145,7 +145,7 @@ describe('Evaluator', async () => {
             const getMainColor = ({ someObj }) => someObj.color.main;
           `
           const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-          expect(evaluator.evaluateSyntax(node, true)).toBe(TsEvalError)
+          expect(evaluator.evaluateNode(node, true)).toBe(TsEvalError)
         })
 
         test('without theme', () => {
@@ -153,7 +153,7 @@ describe('Evaluator', async () => {
             const getMainColor = (props) => props.theme.color.main;
           `
           const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction, true)
-          expect(evaluator.evaluateSyntax(node, true)).toBe(TsEvalError)
+          expect(evaluator.evaluateNode(node, true)).toBe(TsEvalError)
         })
 
         test('with block', () => {
@@ -164,7 +164,7 @@ describe('Evaluator', async () => {
             };
           `
           const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
-          expect(evaluator.evaluateSyntax(node, true)).toBe('coral')
+          expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
       })
     })
@@ -176,7 +176,7 @@ describe('Evaluator', async () => {
       const color = { main: mainColor };
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.ObjectLiteralExpression)
-    expect(evaluator.evaluateSyntax(node)).toStrictEqual({ main: 'coral' })
+    expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
   })
 
   test('ObjectLiteralExpression with arrow function', () => {
@@ -185,7 +185,7 @@ describe('Evaluator', async () => {
       const color = { main: mainColor };
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.ObjectLiteralExpression)
-    expect(evaluator.evaluateSyntax(node)).toBe(TsEvalError)
+    expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
   })
 
   test('CallExpression', () => {

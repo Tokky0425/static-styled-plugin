@@ -38,7 +38,7 @@ export class Evaluator {
     this.theme = props.theme
   }
 
-  evaluateSyntax(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ErrorType {
+  evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ErrorType {
     if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
       return this.evaluateBinaryExpression(node)
@@ -79,7 +79,7 @@ export class Evaluator {
     /* first, evaluate each item of binary expressions, and then evaluate the whole node */
     const items = this.flattenBinaryExpressions(node)
     for (const item of items) {
-      const value = this.evaluateSyntax(item)
+      const value = this.evaluateNode(item)
       if (value === TsEvalError) return TsEvalError
       item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
     }
@@ -105,7 +105,7 @@ export class Evaluator {
       if (!Node.isPropertyAssignment(nodeParent)) continue
       const propertyInitializer = nodeParent.getInitializer()
       if (!propertyInitializer) continue
-      const propertyInitializerValue = this.evaluateSyntax(propertyInitializer)
+      const propertyInitializerValue = this.evaluateNode(propertyInitializer)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
       value = propertyInitializerValue
     }
@@ -131,7 +131,7 @@ export class Evaluator {
     for (const node of referencesAsNode) {
       const nodeParent = node.getParentOrThrow()
       if (!Node.isVariableDeclaration(nodeParent)) continue
-      const propertyInitializerValue = this.evaluateSyntax(nodeParent)
+      const propertyInitializerValue = this.evaluateNode(nodeParent)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
       value = propertyInitializerValue
     }
@@ -158,7 +158,7 @@ export class Evaluator {
       const templateSpan = templateSpans[i]
       const templateMiddle = templateSpan.getLiteral().getLiteralText()
       const templateSpanExpression = templateSpan.getExpression()
-      const value = this.evaluateSyntax(templateSpanExpression)
+      const value = this.evaluateNode(templateSpanExpression)
       if (value === TsEvalError) return TsEvalError
       result += (value + templateMiddle)
     }
@@ -180,7 +180,7 @@ export class Evaluator {
         const templateSpan = templateSpans[i]
         const templateMiddle = templateSpan.getLiteral().getLiteralText()
         const templateSpanExpression = templateSpan.getExpression()
-        const value = this.evaluateSyntax(templateSpanExpression, true)
+        const value = this.evaluateNode(templateSpanExpression, true)
         if (value === TsEvalError) return TsEvalError
         result += (value + templateMiddle)
       }
@@ -198,7 +198,7 @@ export class Evaluator {
       if (Node.isObjectLiteralExpression(initializer)) {
         this.evaluateObjectLiteralExpression(initializer)
       } else if (initializer) {
-        const result = this.evaluateSyntax(initializer)
+        const result = this.evaluateNode(initializer)
         if (result === TsEvalError) return TsEvalError
         initializer.replaceWithText(JSON.stringify(result))
       }
@@ -249,9 +249,9 @@ export class Evaluator {
       if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
       const expression = returnStatements[0].getExpression()
       if (!expression) return TsEvalError
-      return this.evaluateSyntax(expression)
+      return this.evaluateNode(expression)
     } else {
-      return this.evaluateSyntax(body, true) // inStyledFunction needs to be true for higher order function like `(props) => ({ theme }) => ...`
+      return this.evaluateNode(body, true) // inStyledFunction needs to be true for higher order function like `(props) => ({ theme }) => ...`
     }
   }
 
