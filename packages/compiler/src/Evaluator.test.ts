@@ -179,12 +179,11 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
   })
 
-  test('ObjectLiteralExpression with arrow function', () => {
+  test('ConditionalExpression', () => {
     const value = `
-      const mainColor = (props) => props.theme.color.main;
-      const color = { main: mainColor };
+      const color = true ? 'coral' : 'lime';
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.ObjectLiteralExpression)
+    const [evaluator, node] = getFirstNode(value, SyntaxKind.ConditionalExpression)
     expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
   })
 

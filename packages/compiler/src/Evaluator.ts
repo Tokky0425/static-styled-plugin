@@ -62,6 +62,8 @@ export class Evaluator {
     } else if (Node.isObjectLiteralExpression(node)) {
       // for when parsing theme
       return this.evaluateObjectLiteralExpression(node)
+    } else if (Node.isConditionalExpression(node)) {
+      return TsEvalError
     } else {
       const evaluated = evaluate({
         node: node.compilerNode as any,
