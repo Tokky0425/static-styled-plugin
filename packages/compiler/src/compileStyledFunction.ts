@@ -59,7 +59,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} }
       const propsWithAttrs = { ...props, ...attrsProps }
-      const joinedClassName = \`${className} \$\{attrsProps.className ?? ''\} \${props.className ?? ''}\`.trim();
+      const joinedClassName = ['${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
       return <${tagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
   `)
