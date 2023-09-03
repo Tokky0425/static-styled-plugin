@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'vitest'
-import { evaluateSyntax, TsEvalError } from './compileStyledFunction'
 import { Project, SyntaxKind } from 'ts-morph'
-import { Evaluator } from './Evaluator'
+import { Evaluator, TsEvalError } from './Evaluator'
 
 const project = new Project()
 
 describe('Evaluator.evaluateSyntax', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
-  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>, syntaxKind: SyntaxKind, withoutTheme?: boolean) => {
+  const assert = (value: string, expectedResult: any, syntaxKind: SyntaxKind, withoutTheme?: boolean) => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
     const node = file.getFirstDescendant(node => node.getKind() === syntaxKind)
     const evaluator = new Evaluator({ extra: {}, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })

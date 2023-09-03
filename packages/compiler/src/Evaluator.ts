@@ -1,4 +1,3 @@
-import { TsEvalError } from './compileStyledFunction'
 import { evaluate } from 'ts-evaluator'
 import type { IEnvironment } from 'ts-evaluator'
 import * as TS from 'typescript'
@@ -25,6 +24,9 @@ type Definition = {
   ts?: typeof TS
   cssFunctionName: string | null
 }
+
+export const TsEvalError = Symbol('EvalError')
+
 export class Evaluator {
   extra: EvaluateExtra
   definition: Definition
