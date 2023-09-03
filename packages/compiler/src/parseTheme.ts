@@ -18,7 +18,7 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
       if (!value || !Node.isObjectLiteralExpression(value)) return
       const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName: null }, theme: null })
       const objectLiteralResult = evaluator.evaluateObjectLiteralExpression(value)
-      if (!(objectLiteralResult === TsEvalError || typeof objectLiteralResult === 'string' || typeof objectLiteralResult === 'number')) {
+      if (objectLiteralResult !== TsEvalError) {
         themeResult = objectLiteralResult
       }
     }
