@@ -1,6 +1,5 @@
-import {describe, expect, test} from 'vitest'
+import { describe, expect, test } from 'vitest'
 import {
-  ArrowFunction,
   Project,
   SyntaxKind,
   TaggedTemplateExpression,
@@ -159,32 +158,32 @@ describe('getAttrs', () => {
 describe('evaluateInterpolation', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
-  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>) => {
+  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>, syntaxKind: SyntaxKind) => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-    const node = file.getFirstDescendant(node => node.getKind() === SyntaxKind.ArrowFunction)
-    const result = evaluateSyntax(node as ArrowFunction, {}, { ts, cssFunctionName: 'css' }, theme)
-    expect(result).toBe(expectedResult)
+    const node = file.getFirstDescendant(node => node.getKind() === syntaxKind)
+    const result = evaluateSyntax(node as any, {}, { ts, cssFunctionName: 'css' }, theme)
+    expect(result).toStrictEqual(expectedResult)
   }
 
   test('StringLiteral', () => {
     const value = `
       const getMainColor = () => 'coral';
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   test('NumberLiteral', () => {
     const value = `
       const getNumber = () => 20;
     `
-    assert(value, 20)
+    assert(value, 20, SyntaxKind.ArrowFunction)
   })
 
   test('NoSubstitutionTemplateLiteral', () => {
     const value = `
       const getMainColor = () => \`coral\`;
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   test('PropertyAccessExpression', () => {
@@ -192,7 +191,7 @@ describe('evaluateInterpolation', async () => {
       const theme = { color: { main: 'coral' }};
       const getMainColor = () => theme.color.main;
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   test('BinaryExpression', () => {
@@ -201,7 +200,7 @@ describe('evaluateInterpolation', async () => {
       const b = 'ral';
       const getMainColor = () => a + b;
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   test('Identifier', () => {
@@ -209,7 +208,7 @@ describe('evaluateInterpolation', async () => {
       const mainColor = 'coral';
       const getMainColor = () => mainColor;
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   test('TemplateExpression', () => {
@@ -218,7 +217,7 @@ describe('evaluateInterpolation', async () => {
       const b = 'ral';
       const getMainColor = () => \`\$\{a + b\}\`;
     `
-    assert(value, 'coral')
+    assert(value, 'coral', SyntaxKind.ArrowFunction)
   })
 
   describe('TemplateExpression', () => {
@@ -226,7 +225,7 @@ describe('evaluateInterpolation', async () => {
       const value = `
         const getMainColor = () => \`coral\`
       `
-      assert(value, 'coral')
+      assert(value, 'coral', SyntaxKind.ArrowFunction)
     })
 
     describe('SubstitutionTemplateLiteral', () => {
@@ -234,14 +233,14 @@ describe('evaluateInterpolation', async () => {
         const value = `
           const getMainColor = () => \`\${css\`color: coral;\`}\`
         `
-        assert(value, 'color: coral;')
+        assert(value, 'color: coral;', SyntaxKind.ArrowFunction)
       })
 
       test('with not css function', () => {
         const value = `
           const getMainColor = () => \`\${foo\`color: coral;\`}\`
         `
-        assert(value, TsEvalError)
+        assert(value, TsEvalError, SyntaxKind.ArrowFunction)
       })
     })
   })
@@ -251,14 +250,14 @@ describe('evaluateInterpolation', async () => {
       const value = `
         const getMainColor = (props) => ({ theme }) => props.theme.color.main + theme.color.main;
       `
-      assert(value, 'coralcoral')
+      assert(value, 'coralcoral', SyntaxKind.ArrowFunction)
     })
 
     test('arg non destructured', () => {
       const value = `
         const getMainColor = (props) => props.theme.color.main;
       `
-      assert(value, 'coral')
+      assert(value, 'coral', SyntaxKind.ArrowFunction)
     })
 
     describe('arg destructured', () => {
@@ -266,21 +265,21 @@ describe('evaluateInterpolation', async () => {
         const value = `
           const getMainColor = ({ theme }) => theme.color.main;
         `
-        assert(value, 'coral')
+        assert(value, 'coral', SyntaxKind.ArrowFunction)
       })
 
       test('with rename', () => {
         const value = `
           const getMainColor = ({ theme: myTheme }) => myTheme.color.main;
         `
-        assert(value, 'coral')
+        assert(value, 'coral', SyntaxKind.ArrowFunction)
       })
 
       test('other than "theme"', () => {
         const value = `
           const getMainColor = ({ someObj }) => someObj.color.main;
         `
-        assert(value, TsEvalError)
+        assert(value, TsEvalError, SyntaxKind.ArrowFunction)
       })
 
       test('with block', () => {
@@ -290,9 +289,17 @@ describe('evaluateInterpolation', async () => {
           return result
         };
       `
-        assert(value, 'coral')
+        assert(value, 'coral', SyntaxKind.ArrowFunction)
       })
     })
+  })
+
+  test('ObjectLiteralExpression', () => {
+    const value = `
+      const mainColor = 'coral'
+      const color = { main: mainColor };
+    `
+    assert(value, { main: 'coral' }, SyntaxKind.ObjectLiteralExpression)
   })
 
   test('CallExpression', () => {

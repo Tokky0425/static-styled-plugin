@@ -1,8 +1,8 @@
 import { Node, Project } from 'ts-morph'
-import { evaluate } from 'ts-evaluator'
 import path from 'path'
 import fs from 'fs'
 import type { Theme } from './types'
+import { evaluateObjectLiteralExpression, TsEvalError } from './compileStyledFunction'
 
 const project = new Project()
 export function parseTheme(themeFileRelativePath: string): null | Theme {
@@ -15,11 +15,11 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
     if (themeResult) return
     if (Node.isVariableDeclaration(node) && node.getName() === 'theme') {
       const value = node.getInitializer()
-      if (!value) return
-      const result = evaluate({
-        node: value.compilerNode
-      })
-      themeResult = result.success ? result.value as Theme : null
+      if (!value || !Node.isObjectLiteralExpression(value)) return
+      const objectLiteralResult = evaluateObjectLiteralExpression(value, {}, { cssFunctionName: null }, null)
+      if (!(objectLiteralResult === TsEvalError || typeof objectLiteralResult === 'string' || typeof objectLiteralResult === 'number')) {
+        themeResult = objectLiteralResult
+      }
     }
   })
 

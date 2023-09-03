@@ -7,6 +7,7 @@ import {
   BindingName,
   Identifier,
   Node,
+  ObjectLiteralExpression,
   PropertyAccessExpression,
   ReturnStatement,
   SourceFile,
@@ -124,10 +125,12 @@ type Definition = {
   cssFunctionName: string | null
 }
 
-export function evaluateSyntax(node: Node, extra: EvaluateExtra, definition: Definition, theme: Theme | null) {
-  if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
-    return node.getLiteralValue()
-  } else if (Node.isBinaryExpression(node)) {
+type ErrorType = typeof TsEvalError
+type PrimitiveType = string | number
+type ObjectType = { [key: string]: (PrimitiveType | ObjectType) }
+
+export function evaluateSyntax(node: Node, extra: EvaluateExtra, definition: Definition, theme: Theme | null): PrimitiveType | ObjectType | ErrorType {
+  if (Node.isBinaryExpression(node)) {
     // e.g. width * 2
     return evaluateBinaryExpression(node, extra, definition)
   } else if (Node.isPropertyAccessExpression(node)) {
@@ -147,8 +150,16 @@ export function evaluateSyntax(node: Node, extra: EvaluateExtra, definition: Def
   } else if (Node.isArrowFunction(node)) {
     // e.g. (props) => props.fontSize.m
     return evaluateArrowFunction(node, extra, definition, theme)
+  } else if (Node.isObjectLiteralExpression(node)) {
+    // for when parsing theme
+    return evaluateObjectLiteralExpression(node, extra, definition, theme)
   } else {
-    return TsEvalError
+    const result = evaluate({
+      node: node.compilerNode as any,
+      typescript: definition.ts,
+      environment: { extra }
+    })
+    return result.success ? result.value as (PrimitiveType | ObjectType) : TsEvalError
   }
 }
 
@@ -161,7 +172,7 @@ function flattenBinaryExpressions(node: BinaryExpression): Node[] {
     return [left, right]
   }
 }
-function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, definition: Definition): PrimitiveType | ErrorType {
   /* first, evaluate each item of binary expressions, and then evaluate the whole node */
   const items = flattenBinaryExpressions(node)
   for (const item of items) {
@@ -182,7 +193,7 @@ function evaluateBinaryExpression(node: BinaryExpression, extra: EvaluateExtra, 
   return TsEvalError
 }
 
-function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra: EvaluateExtra, definition: Definition): PrimitiveType | ObjectType | ErrorType {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
@@ -191,13 +202,9 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra:
     if (!Node.isPropertyAssignment(nodeParent)) continue
     const propertyInitializer = nodeParent.getInitializer()
     if (!propertyInitializer) continue
-    const evaluated = evaluate({
-      node: propertyInitializer.compilerNode,
-      typescript: definition.ts,
-      environment: { extra }
-    })
-    if (!evaluated.success) continue
-    value = evaluated.value
+    const propertyInitializerValue = evaluateSyntax(propertyInitializer, extra, definition, null)
+    if (propertyInitializerValue === TsEvalError) continue
+    value = propertyInitializerValue
   }
 
   if (!value && extra) {
@@ -211,25 +218,19 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra:
     }
   }
 
-  if (typeof value === 'string' || typeof value === 'number') return value
-  return TsEvalError
+  return (value as PrimitiveType | ObjectType) || TsEvalError
 }
 
-function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: Definition): string | number | typeof TsEvalError {
+function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: Definition): PrimitiveType | ObjectType | ErrorType {
   let value: unknown
   const referencesAsNode = node.findReferencesAsNodes()
 
   for (const node of referencesAsNode) {
     const nodeParent = node.getParentOrThrow()
     if (!Node.isVariableDeclaration(nodeParent)) continue
-
-    const evaluated = evaluate({
-      node: nodeParent.compilerNode,
-      typescript: definition.ts,
-      environment: { extra }
-    })
-    if (!evaluated.success) continue
-    value = evaluated.value
+    const propertyInitializerValue = evaluateSyntax(nodeParent, extra, definition, null)
+    if (propertyInitializerValue === TsEvalError) continue
+    value = propertyInitializerValue
   }
 
   if (!value && extra) {
@@ -243,11 +244,10 @@ function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: 
     }
   }
 
-  if (typeof value === 'string' || typeof value === 'number') return value
-  return TsEvalError
+  return (value as PrimitiveType | ObjectType) || TsEvalError
 }
 
-function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, definition: Definition): string | typeof TsEvalError {
+function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExtra, definition: Definition): string | ErrorType {
   let result = node.getHead().getLiteralText()
   const templateSpans = node.getTemplateSpans()
 
@@ -263,7 +263,7 @@ function evaluateTemplateExpression(node: TemplateExpression, extra: EvaluateExt
   return result
 }
 
-function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | typeof TsEvalError {
+function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | ErrorType {
   const template = node.getTemplate()
   let result = ''
 
@@ -285,7 +285,7 @@ function evaluateTaggedTemplateExpression(node: TaggedTemplateExpression, extra:
   return result
 }
 
-function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): string | number | typeof TsEvalError {
+function evaluateArrowFunction(node: ArrowFunction, extra: EvaluateExtra, definition: Definition, theme: Theme | null): PrimitiveType | ObjectType | ErrorType {
   const body = node.getBody()
   // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
   // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
@@ -363,4 +363,29 @@ function recursivelyBuildExtraBasedOnTheme(bindingElements: BindingElement[], th
     }
   }
   return extra
+}
+
+export function evaluateObjectLiteralExpression(node: ObjectLiteralExpression, extra: EvaluateExtra, definition: Definition, theme: Theme | null): PrimitiveType | ObjectType | ErrorType {
+  const properties = node.getProperties()
+
+  for (const property of properties) {
+    if (!Node.isPropertyAssignment(property)) continue
+    const initializer = property.getInitializer()
+    if (!initializer) continue
+    if (Node.isObjectLiteralExpression(initializer)) {
+      evaluateObjectLiteralExpression(initializer, extra, definition, theme)
+    } else if (initializer) {
+      const result = evaluateSyntax(initializer, extra, definition, theme)
+      if (result === TsEvalError) continue
+      initializer.replaceWithText(JSON.stringify(result))
+    }
+  }
+
+  const evaluated = evaluate({
+    node: node.compilerNode,
+    typescript: definition.ts,
+    environment: { extra }
+  })
+
+  return evaluated.success ? evaluated.value as ObjectType : TsEvalError
 }
