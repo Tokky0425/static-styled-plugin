@@ -154,12 +154,15 @@ export function evaluateSyntax(node: Node, extra: EvaluateExtra, definition: Def
     // for when parsing theme
     return evaluateObjectLiteralExpression(node, extra, definition, theme)
   } else {
-    const result = evaluate({
+    const evaluated = evaluate({
       node: node.compilerNode as any,
       typescript: definition.ts,
       environment: { extra }
     })
-    return result.success ? result.value as (PrimitiveType | ObjectType) : TsEvalError
+    if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number')) {
+      return evaluated.value
+    }
+    return TsEvalError
   }
 }
 
@@ -203,7 +206,7 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra:
     const propertyInitializer = nodeParent.getInitializer()
     if (!propertyInitializer) continue
     const propertyInitializerValue = evaluateSyntax(propertyInitializer, extra, definition, null)
-    if (propertyInitializerValue === TsEvalError) continue
+    if (propertyInitializerValue === TsEvalError) return TsEvalError
     value = propertyInitializerValue
   }
 
@@ -213,7 +216,7 @@ function evaluatePropertyAccessExpression(node: PropertyAccessExpression, extra:
       typescript: definition.ts,
       environment: { extra }
     })
-    if (evaluated.success) {
+    if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number' || typeof evaluated.value === 'object')) {
       value = evaluated.value
     }
   }
@@ -229,7 +232,7 @@ function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: 
     const nodeParent = node.getParentOrThrow()
     if (!Node.isVariableDeclaration(nodeParent)) continue
     const propertyInitializerValue = evaluateSyntax(nodeParent, extra, definition, null)
-    if (propertyInitializerValue === TsEvalError) continue
+    if (propertyInitializerValue === TsEvalError) return TsEvalError
     value = propertyInitializerValue
   }
 
@@ -239,7 +242,7 @@ function evaluateIdentifier(node: Identifier, extra: EvaluateExtra, definition: 
       typescript: definition.ts,
       environment: { extra }
     })
-    if (evaluated.success) {
+    if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number' || typeof evaluated.value === 'object')) {
       value = evaluated.value
     }
   }
@@ -376,7 +379,7 @@ export function evaluateObjectLiteralExpression(node: ObjectLiteralExpression, e
       evaluateObjectLiteralExpression(initializer, extra, definition, theme)
     } else if (initializer) {
       const result = evaluateSyntax(initializer, extra, definition, theme)
-      if (result === TsEvalError) continue
+      if (result === TsEvalError) return TsEvalError
       initializer.replaceWithText(JSON.stringify(result))
     }
   }
@@ -387,5 +390,8 @@ export function evaluateObjectLiteralExpression(node: ObjectLiteralExpression, e
     environment: { extra }
   })
 
-  return evaluated.success ? evaluated.value as ObjectType : TsEvalError
+  if (evaluated.success && typeof evaluated.value === 'object') {
+    return evaluated.value as ObjectType
+  }
+  return TsEvalError
 }

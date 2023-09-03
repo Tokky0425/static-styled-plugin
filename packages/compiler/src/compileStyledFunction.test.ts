@@ -1,15 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import {
-  Project,
-  SyntaxKind,
-  TaggedTemplateExpression,
-} from 'ts-morph'
-import {
-  evaluateSyntax,
-  getAttrs,
-  getTagName,
-  TsEvalError,
-} from './compileStyledFunction'
+import { Project, SyntaxKind, TaggedTemplateExpression } from 'ts-morph'
+import { evaluateSyntax, getAttrs, getTagName, TsEvalError } from './compileStyledFunction'
 
 const project = new Project()
 
@@ -158,10 +149,10 @@ describe('getAttrs', () => {
 describe('evaluateInterpolation', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
-  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>, syntaxKind: SyntaxKind) => {
+  const assert = (value: string, expectedResult: ReturnType<typeof evaluateSyntax>, syntaxKind: SyntaxKind, withoutTheme?: boolean) => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
     const node = file.getFirstDescendant(node => node.getKind() === syntaxKind)
-    const result = evaluateSyntax(node as any, {}, { ts, cssFunctionName: 'css' }, theme)
+    const result = evaluateSyntax(node as any, {}, { ts, cssFunctionName: 'css' }, withoutTheme ? null : theme)
     expect(result).toStrictEqual(expectedResult)
   }
 
@@ -282,6 +273,13 @@ describe('evaluateInterpolation', async () => {
         assert(value, TsEvalError, SyntaxKind.ArrowFunction)
       })
 
+      test('without theme', () => {
+        const value = `
+          const getMainColor = (props) => props.theme.color.main;
+        `
+        assert(value, TsEvalError, SyntaxKind.ArrowFunction, true)
+      })
+
       test('with block', () => {
         const value = `
         const getMainColor = ({ theme }) => {
@@ -300,6 +298,14 @@ describe('evaluateInterpolation', async () => {
       const color = { main: mainColor };
     `
     assert(value, { main: 'coral' }, SyntaxKind.ObjectLiteralExpression)
+  })
+
+  test('ObjectLiteralExpression with arrow function', () => {
+    const value = `
+      const mainColor = (props) => props.theme.color.main;
+      const color = { main: mainColor };
+    `
+    assert(value, TsEvalError, SyntaxKind.ObjectLiteralExpression)
   })
 
   test('CallExpression', () => {
