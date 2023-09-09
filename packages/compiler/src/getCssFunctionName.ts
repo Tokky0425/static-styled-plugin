@@ -1,16 +1,16 @@
 import { Node, SourceFile } from 'ts-morph'
 
 export function getCssFunctionName(file: SourceFile): string | null {
+  const importDeclarations = file.getImportDeclarations()
   let cssFunctionName: string | null = null
 
-  file.forEachDescendant((node) => {
-    if (cssFunctionName) return
-    if (!Node.isImportDeclaration(node)) return
-    if (node.getModuleSpecifier().getLiteralText() !== 'styled-components') return
+  for (const importDeclaration of importDeclarations) {
+    if (cssFunctionName) continue
+    if (importDeclaration.getModuleSpecifier().getLiteralText() !== 'styled-components') continue
 
-    const importClause = node.getImportClause()
+    const importClause = importDeclaration.getImportClause()
     const namedImports = importClause?.getNamedImports()
-    if (!namedImports) return
+    if (!namedImports) continue
 
     for (const namedImport of namedImports) {
       const nameIdentifier = namedImport.compilerNode.name
@@ -26,7 +26,7 @@ export function getCssFunctionName(file: SourceFile): string | null {
         cssFunctionName = nameIdentifierText
       }
     }
-  })
+  }
 
   return cssFunctionName // normally 'css' if it exists
 }

@@ -9,20 +9,21 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
   const themeFilePath = path.join(process.cwd(), themeFileRelativePath)
   const fileBuffer = fs.readFileSync(themeFilePath)
   const file = project.createSourceFile(themeFilePath, fileBuffer.toString(), { overwrite: true })
+  const variableDeclarations = file.getVariableDeclarations()
   let themeResult: null | Theme = null
 
-  file.forEachDescendant((node) => {
-    if (themeResult) return
-    if (Node.isVariableDeclaration(node) && node.getName() === 'theme') {
-      const value = node.getInitializer()
-      if (!value || !Node.isObjectLiteralExpression(value)) return
+  for (const variableDeclaration of variableDeclarations) {
+    if (themeResult) continue
+    if (variableDeclaration.getName() === 'theme') {
+      const value = variableDeclaration.getInitializer()
+      if (!value || !Node.isObjectLiteralExpression(value)) continue
       const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName: null }, theme: null })
       const objectLiteralResult = evaluator.evaluateObjectLiteralExpression(value)
       if (objectLiteralResult !== TsEvalError) {
         themeResult = objectLiteralResult
       }
     }
-  })
+  }
 
   return themeResult
 }
