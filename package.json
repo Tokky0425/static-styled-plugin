@@ -8,7 +8,8 @@
     "compiler": "pnpm -F \"compiler\"",
     "style-registry": "pnpm -F \"style-registry\"",
     "vite-plugin": "pnpm -F \"vite-plugin\"",
-    "webpack-plugin": "pnpm -F \"webpack-plugin\""
+    "webpack-plugin": "pnpm -F \"webpack-plugin\"",
+    "next-plugin": "pnpm -F \"next-plugin\""
   },
   "engines": {
     "pnpm": "8.6.7",
