@@ -6,11 +6,13 @@ import { Evaluator, TsEvalError } from './Evaluator'
 
 const project = new Project()
 export function parseTheme(themeFileRelativePath: string): null | Theme {
+  let themeResult: null | Theme = null
   const themeFilePath = path.join(process.cwd(), themeFileRelativePath)
+  if (!fs.existsSync(themeFilePath)) return themeResult
+
   const fileBuffer = fs.readFileSync(themeFilePath)
   const file = project.createSourceFile(themeFilePath, fileBuffer.toString(), { overwrite: true })
   const variableDeclarations = file.getVariableDeclarations()
-  let themeResult: null | Theme = null
 
   for (const variableDeclaration of variableDeclarations) {
     if (themeResult) continue
