@@ -11,10 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@static-styled-plugin/compiler": "workspace:^",
-    "@static-styled-plugin/style-registry": "workspace:^"
+    "@static-styled-plugin/webpack-plugin": "workspace:^"
   },
   "peerDependencies": {
     "next": ">=13.4"
+  },
+  "devDependencies": {
+    "webpack": "5.88.2"
   }
 }
