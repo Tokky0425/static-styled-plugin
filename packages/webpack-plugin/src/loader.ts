@@ -11,7 +11,7 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const code = compile(sourceCode, resourcePath, theme)
+  const { code, useClientExpressionExtracted } = compile(sourceCode, resourcePath, theme)
   const cssString = styleRegistry.getRule()
   if (!cssString) {
     callback(null, code)
@@ -35,7 +35,8 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
       `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
   )};`
 
-  callback(null, `${importCSSIdentifier}\n${code}`)
+  const useClientExpression = useClientExpressionExtracted ? '\'use client\';' : ''
+  callback(null, `${useClientExpression}\n${importCSSIdentifier}\n${code}`)
 }
 
 export default loader
