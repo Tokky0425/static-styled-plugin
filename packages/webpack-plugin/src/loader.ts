@@ -12,16 +12,18 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
   const callback = this.callback
   const resourcePath = this.resourcePath
   const { code, useClientExpressionExtracted } = compile(sourceCode, resourcePath, theme)
+  const useClientExpression = useClientExpressionExtracted ? '\'use client\';\n' : ''
+
   const cssString = styleRegistry.getRule()
   if (!cssString) {
-    callback(null, code)
+    callback(null, useClientExpression + code)
     return
   }
   styleRegistry.reset()
 
   const outputPath: string | undefined = this._compilation?.options.output.path
   if (!outputPath) {
-    callback(null, code)
+    callback(null, useClientExpression + code)
     return
   }
 
@@ -33,10 +35,9 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null }> = function(sourc
     this.utils.contextify(
       this.context || this.rootContext,
       `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
-  )};`
+  )};\n`
 
-  const useClientExpression = useClientExpressionExtracted ? '\'use client\';' : ''
-  callback(null, `${useClientExpression}\n${importCSSIdentifier}\n${code}`)
+  callback(null, useClientExpression + importCSSIdentifier + code)
 }
 
 export default loader

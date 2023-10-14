@@ -29,10 +29,10 @@ export function staticStyledPlugin(options?: Options): Plugin {
       if (!/\/.+?\.tsx$/.test(id)) return
 
       const { code, useClientExpressionExtracted } = compile(sourceCode, id, theme)
+      const useClientExpression = useClientExpressionExtracted ? '\'use client\';\n' : ''
       const cssString = styleRegistry.getRule()
-      if (!cssString) return code
+      if (!cssString) return useClientExpression + code
       styleRegistry.reset()
-      const useClientExpression = useClientExpressionExtracted ? '\'use client\';' : ''
 
       if (command === 'serve') {
         // Manually injecting style tag by injectDevelopmentCSS
@@ -45,7 +45,7 @@ export function staticStyledPlugin(options?: Options): Plugin {
       const cssAbsolutePath = path.normalize(`${id.replace(targetExtensionRegex, '')}.css`)
       const cssMapKey = virtualModuleId + cssAbsolutePath
       cssMap[cssMapKey] = cssString
-      return `${useClientExpression}\nimport "${virtualModuleId + cssAbsolutePath}";\n${code}`
+      return useClientExpression + `import "${virtualModuleId + cssAbsolutePath}";\n` + code
     },
     resolveId(id) {
       if (id.startsWith(virtualModuleId)) {
