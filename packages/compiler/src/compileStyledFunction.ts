@@ -41,8 +41,8 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     node.replaceWithText(`
     (props: any) => {
       ${attrsDeclaration}
-      const attrsProps = { ${attrsProps} }
-      const propsWithAttrs = { ...props, ...attrsProps }
+      const attrsProps = { ${attrsProps} } as any
+      const propsWithAttrs = { ...props, ...attrsProps } as any
       const joinedClassName = ['${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
       return <${tagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
