@@ -13,6 +13,7 @@ export default function Home() {
 
 const StaticStyleText = styled.p`
   color: coral;
+  font-size: ${(props) => props.theme.fontSize.l};
 `
 
 const DynamicStyleText = styled(StaticStyleText)`
