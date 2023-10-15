@@ -12,9 +12,10 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     if (!Node.isTaggedTemplateExpression(node)) return
 
     const tagNode = node.getTag()
-    const tagName = getTagName(tagNode, styledFunctionName)
-    const attrsArr = getAttrs(tagNode)
-    if (!tagName || !isHTMLTag(tagName)) {
+    const { htmlTagName , isStyledFunction} = parseTaggedTemplateExpression(tagNode, styledFunctionName)
+    if (!isStyledFunction) {
+      return
+    } else if (!htmlTagName || !isHTMLTag(htmlTagName)) {
       shouldUseClient = true
       return
     }
@@ -32,6 +33,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
+    const attrsArr = getAttrs(tagNode)
     const attrsDeclaration = attrsArr.map((attrs, index) => `const attrs${index} = ${attrs.text}`).join('\n')
     const attrsProps = attrsArr.map((attrs, index) => {
       switch (attrs.nodeKindName) {
@@ -52,28 +54,40 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
       const attrsProps = { ${attrsProps} } as any
       const propsWithAttrs = { ...props, ...attrsProps } as any
       const joinedClassName = ['${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
-      return <${tagName} { ...propsWithAttrs } className={joinedClassName} />;
+      return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
   `)
   })
   return shouldUseClient
 }
 
-export function getTagName(node: Node, styledFunctionName: string): string | null {
-  let tagName: string | null = null
+type ParseTaggedTemplateExpressionResult = {
+  htmlTagName: string | null,
+  isStyledFunction: boolean
+}
+
+export function parseTaggedTemplateExpression(node: Node, styledFunctionName: string): ParseTaggedTemplateExpressionResult {
+  const result: ParseTaggedTemplateExpressionResult = {
+    htmlTagName: null,
+    isStyledFunction: false
+  }
   if (/* e.g. styled('p') */ Node.isCallExpression(node) && node.compilerNode.expression.getText() === styledFunctionName) {
     const arg = node.getArguments()[0]
-    tagName = Node.isStringLiteral(arg) ? arg.getLiteralValue() : null
+    result.htmlTagName = Node.isStringLiteral(arg) ? arg.getLiteralValue() : null
+    result.isStyledFunction = true
   } else if (/* e.g. styled.p */ Node.isPropertyAccessExpression(node) && node.compilerNode.expression.getText() === styledFunctionName) {
-    tagName = node.compilerNode.name.getText() ?? null
+    result.htmlTagName = node.compilerNode.name.getText() ?? null
+    result.isStyledFunction = true
   } else if (Node.isCallExpression(node) || Node.isPropertyAccessExpression(node)) {
     // for when .attrs is used
     const expression = node.getExpression()
     if (Node.isCallExpression(expression) || Node.isPropertyAccessExpression(expression)) {
-      tagName = getTagName(expression, styledFunctionName)
+      const res = parseTaggedTemplateExpression(expression, styledFunctionName)
+      result.htmlTagName = res.htmlTagName
+      result.isStyledFunction = res.isStyledFunction
     }
   }
-  return tagName
+  return result
 }
 
 type GetAttrsResult = {
