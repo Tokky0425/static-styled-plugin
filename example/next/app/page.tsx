@@ -1,21 +1,11 @@
-'use client'
-
-import styled from 'styled-components'
+import { ClientComponent } from './components/ClientComponent'
+import { ServerComponent } from './components/ServerComponent'
 
 export default function Home() {
   return (
     <>
-      <StaticStyleText>static style text</StaticStyleText>
-      <DynamicStyleText>dynamic style text</DynamicStyleText>
+      <ClientComponent />
+      <ServerComponent />
     </>
   )
 }
-
-const StaticStyleText = styled.p`
-  color: coral;
-  font-size: ${(props) => props.theme.fontSize.l};
-`
-
-const DynamicStyleText = styled(StaticStyleText)`
-  color: navy;
-`
