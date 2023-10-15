@@ -3,12 +3,15 @@ import type { Configuration } from 'webpack'
 import { StaticStyledPlugin } from '@static-styled-plugin/webpack-plugin'
 
 
-export const withStaticStyled = (
+type Options = {
+  themeFilePath?: string
+}
+module.exports = (options: Options) => (
   nextConfig: NextConfig = {}
 ) => {
   return Object.assign({}, nextConfig, {
     webpack(config: Configuration) {
-      config.plugins?.push(new StaticStyledPlugin())
+      config.plugins?.push(new StaticStyledPlugin(options))
       return config
     }
   } as NextConfig)
