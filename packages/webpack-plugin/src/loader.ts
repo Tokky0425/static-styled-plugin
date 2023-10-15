@@ -14,8 +14,8 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null, cssOutputDir: stri
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const { code, useClientExpressionExtracted } = compile(sourceCode, resourcePath, theme)
-  const useClientExpression = useClientExpressionExtracted ? '\'use client\';\n' : ''
+  const { code, useClientExpressionExtracted, shouldUseClient } = compile(sourceCode, resourcePath, theme)
+  const useClientExpression = (useClientExpressionExtracted || shouldUseClient) ? '\'use client\';\n' : ''
 
   const cssString = styleRegistry.getRule()
   if (!cssString) {

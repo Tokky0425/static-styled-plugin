@@ -7,16 +7,24 @@ import { Theme } from './types'
 import { Evaluator, TsEvalError } from './Evaluator'
 
 export function compileStyledFunction(file: SourceFile, styledFunctionName: string, cssFunctionName: string | null, theme: Theme | null) {
+  let shouldUseClient = false
   file.forEachDescendant((node) => {
     if (!Node.isTaggedTemplateExpression(node)) return
 
     const tagNode = node.getTag()
     const tagName = getTagName(tagNode, styledFunctionName)
     const attrsArr = getAttrs(tagNode)
-    if (!tagName || !isHTMLTag(tagName)) return
+    if (!tagName || !isHTMLTag(tagName)) {
+      shouldUseClient = true
+      return
+    }
+
     const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName }, theme })
     const result = evaluator.evaluateStyledTaggedTemplateExpression(node)
-    if (result === TsEvalError) return
+    if (result === TsEvalError) {
+      shouldUseClient = true
+      return
+    }
 
     const cssString = result.replace(/\s+/g, ' ').trim()
     const classNameHash = generateHash(cssString)
@@ -48,6 +56,7 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
     }
   `)
   })
+  return shouldUseClient
 }
 
 export function getTagName(node: Node, styledFunctionName: string): string | null {

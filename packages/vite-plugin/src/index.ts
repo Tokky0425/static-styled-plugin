@@ -28,8 +28,8 @@ export function staticStyledPlugin(options?: Options): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const { code, useClientExpressionExtracted } = compile(sourceCode, id, theme)
-      const useClientExpression = useClientExpressionExtracted ? '\'use client\';\n' : ''
+      const { code, useClientExpressionExtracted, shouldUseClient } = compile(sourceCode, id, theme)
+      const useClientExpression = (useClientExpressionExtracted || shouldUseClient) ? '\'use client\';\n' : ''
       const cssString = styleRegistry.getRule()
       if (!cssString) return useClientExpression + code
       styleRegistry.reset()

@@ -16,6 +16,6 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
 
   const cssFunctionName = getCssFunctionName(file)
   const useClientExpressionExtracted = extractUseClientExpression(file)
-  compileStyledFunction(file, styledFunctionName, cssFunctionName, theme)
-  return { code: file.getFullText(), useClientExpressionExtracted }
+  const shouldUseClient = compileStyledFunction(file, styledFunctionName, cssFunctionName, theme)
+  return { code: file.getFullText(), useClientExpressionExtracted, shouldUseClient }
 }
