@@ -3,10 +3,13 @@ import type { IEnvironment } from 'ts-evaluator'
 import * as TS from 'typescript'
 import { Theme } from './types'
 import {
+  ArrayLiteralExpression,
   ArrowFunction,
   BinaryExpression,
   BindingElement,
   BindingName,
+  CallExpression,
+  FunctionDeclaration,
   Identifier,
   Node,
   ObjectLiteralExpression,
@@ -39,7 +42,9 @@ export class Evaluator {
   }
 
   evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ErrorType {
-    if (Node.isBinaryExpression(node)) {
+    if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
+      return node.getLiteralValue()
+    } else if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
       return this.evaluateBinaryExpression(node)
     } else if (Node.isPropertyAccessExpression(node)) {
@@ -56,12 +61,27 @@ export class Evaluator {
       //   font-size: 16rem;
       // `
       return this.evaluateStyledTaggedTemplateExpression(node)
-    } else if (Node.isArrowFunction(node) && inStyledFunction) {
+    } else if (Node.isArrowFunction(node)) {
+      if (inStyledFunction) {
+        this.addAncestorThemeArgsToExtra(node)
+      } else {
+        // TODO add arg values to extra that comes from ancestor function call
+        // `this.addAncestorArgsToExtra(node)` should be similar to `addAncestorThemeArgsToExtra`,
+        // but it does not treat theme values because this arrow function node is called outside `styled` function
+      }
       // e.g. (props) => props.fontSize.m
       return this.evaluateStyledArrowFunction(node)
+    } else if (Node.isFunctionDeclaration(node)) {
+      // e.g. function someYourFunction(a, b) { return a + b }
+      return this.evaluateFunctionDeclaration(node)
     } else if (Node.isObjectLiteralExpression(node)) {
       // for when parsing theme
       return this.evaluateObjectLiteralExpression(node)
+    } else if (Node.isArrayLiteralExpression(node)) {
+      return this.evaluateArrayLiteralExpression(node)
+    } else if (Node.isCallExpression(node)) {
+      // e.g. someYourFunction('co', 'ral')
+      return this.evaluateCallExpression(node)
     } else if (Node.isConditionalExpression(node)) {
       return TsEvalError
     } else {
@@ -218,8 +238,99 @@ export class Evaluator {
     return TsEvalError
   }
 
+  evaluateArrayLiteralExpression(node: ArrayLiteralExpression): typeof TsEvalError {
+    // TODO implement me
+    return TsEvalError
+  }
+
+  evaluateCallExpression(node: CallExpression) {
+    // Only functions declared by const or function declaration are supported.
+    const expression = node.getExpression()
+    if (Node.isCallExpression(expression)) {
+      // TODO maybe support curry function
+      /**
+       * e.g.
+       * const joinStr = (a: string) => (b: string) => a + b
+       * const getMainColor = () => {
+       *   return joinStr('co')('ral')
+       * }
+       */
+    }
+    if (!Node.isIdentifier(expression)) return TsEvalError
+
+    const argumentNodes = node.getArguments()
+    const argumentNodesMeta = argumentNodes.map((argumentNode) => {
+      return this.evaluateNode(argumentNode)
+    })
+
+    const definitions = expression.getDefinitions()
+    let definitionNode: Node | undefined = undefined
+    // TODO check if it's declared by const (not let or var)
+    for (const definitionInfo of definitions) {
+      if (definitionNode) continue
+      definitionNode = definitionInfo.getDeclarationNode()
+    }
+
+    if (!definitionNode) return TsEvalError
+    let targetNode: ArrowFunction | FunctionDeclaration | undefined = undefined
+
+    if (Node.isVariableDeclaration(definitionNode)) {
+      /*
+       * e.g. const joinStr = (a: string, b: string) => a + b
+       **/
+      const initializerNode = definitionNode.getInitializer()
+      if (!Node.isArrowFunction(initializerNode)) return TsEvalError
+      targetNode = initializerNode
+    } else if (Node.isFunctionDeclaration(definitionNode)) {
+      /*
+       * e.g. function joinStr(a: string, b: string) { return a + b }
+       **/
+      targetNode = definitionNode
+    }
+
+    if (!targetNode) return TsEvalError
+    const params = targetNode.getParameters()
+    const paramsMeta = params.map((param) => {
+      const defaultValueNode = param.getInitializer()
+      return {
+        name: param.getName(),
+        defaultValue: defaultValueNode && new Evaluator({ extra: {}, definition: { ts: this.definition.ts, cssFunctionName: null } , theme: null }).evaluateNode(defaultValueNode)
+      }
+    })
+
+    const extraForEvaluateFunction = this.buildExtraFromArgsAndParams(argumentNodesMeta, paramsMeta)
+    const functionEvaluator = new Evaluator({ extra: extraForEvaluateFunction, definition: { ts: this.definition.ts, cssFunctionName: null } , theme: null })
+    return functionEvaluator.evaluateNode(targetNode)
+  }
+
   evaluateStyledArrowFunction(node: ArrowFunction) {
     const body = node.getBody()
+    if (Node.isBlock(body)) {
+      const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
+      if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
+      const expression = returnStatements[0].getExpression()
+      if (!expression) return TsEvalError
+      return this.evaluateNode(expression)
+    } else {
+      return this.evaluateNode(body, true) // inStyledFunction needs to be true for higher order function like `(props) => ({ theme }) => ...`
+    }
+  }
+
+  evaluateFunctionDeclaration(node: FunctionDeclaration) {
+    const body = node.getBody()
+    if (Node.isBlock(body)) {
+      const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
+      if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
+      const expression = returnStatements[0].getExpression()
+      if (!expression) return TsEvalError
+      return this.evaluateNode(expression)
+    }
+    return TsEvalError
+  }
+
+  private addAncestorThemeArgsToExtra(node: ArrowFunction) {
+    const body = node.getBody()
+
     // `getAllAncestorParams` searches parent nodes recursively and get all arrow functions' first parameter.
     // We do this because arrow functions can be nested (e.g. `(props) => ({ theme }) => ...`) and we need to know from which arrow function the arg comes.
     const params = this.getAllAncestorParams(body)
@@ -245,16 +356,6 @@ export class Evaluator {
         }
       }
     })
-
-    if (Node.isBlock(body)) {
-      const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
-      if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
-      const expression = returnStatements[0].getExpression()
-      if (!expression) return TsEvalError
-      return this.evaluateNode(expression)
-    } else {
-      return this.evaluateNode(body, true) // inStyledFunction needs to be true for higher order function like `(props) => ({ theme }) => ...`
-    }
   }
 
   private flattenBinaryExpressions(node: BinaryExpression): Node[] {
@@ -306,5 +407,13 @@ export class Evaluator {
       }
     }
     return extra
+  }
+
+  private buildExtraFromArgsAndParams(args: any[], params: Array<{ name: string, defaultValue: any }>) {
+    const result: { [key: string]: any } = {}
+    params.forEach((param, index) => {
+      result[param.name] = args[index] === undefined ? param.defaultValue : args[index]
+    })
+    return result
   }
 }

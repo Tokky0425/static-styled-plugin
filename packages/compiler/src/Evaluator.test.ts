@@ -187,14 +187,131 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
   })
 
-  test('CallExpression', () => {
-    // TODO
-    // const value = `
-    //   const joinStr = (a: string, b: string) => a + b
-    //   const getMainColor = () => joinStr('co', 'ral');
-    // `
-    // const value = `
-    //   const getMainColor = () => \`${css({ color: 'coral' })}\`
-    // `
+  describe('CallExpression', () => {
+    const getNode = (value: string) => {
+      const file = project.createSourceFile('virtual.ts', value, {overwrite: true})
+      const nodes = file.getDescendants()
+      let targetNode: Node
+      let count = 0
+      for (const node of nodes) {
+        if (count === 1) continue
+        if (Node.isCallExpression(node)) count += 1
+        if (count === 1) targetNode = node
+      }
+      const evaluator = new Evaluator({
+        extra: {},
+        definition: { ts, cssFunctionName: '' },
+        theme: null
+      })
+      return [evaluator, targetNode!] as const
+    }
+
+    describe('when arrow function', () => {
+      test('when args are passed directly', () => {
+        const value = `
+        const joinStr = (a: string, b: string) => a + b
+        const getMainColor = () => {
+          return joinStr('co', 'ral')
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+
+      test('when params are variables', () => {
+        const value = `
+        const joinStr = (a: string, b: string) => a + b
+        const getMainColor = () => {
+          const first = 'co'
+          const second = 'ral'
+          return joinStr(first, second)
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+
+      test('when args have default value', () => {
+        const value = `
+        const joinStr = (a: string, b: string = 'ral') => a + b
+        const getMainColor = () => {
+          return joinStr('co')
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+
+      test('when args are object', () => {
+        const value = `
+        const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
+        const getMainColor = () => {
+          return joinStr({ a: 'co', b: 'ral' })
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+
+      // test('when curry function', () => {
+      //   const value = `
+      //   const joinStr = (a: string) => (b: string) => a + b
+      //   const getMainColor = () => {
+      //     return joinStr('co')('ral')
+      //   }
+      //   `
+      //   const [evaluator, node] = getNode(value)
+      //   expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      // })
+
+      // test('when args are array', () => {
+      //   const value = `
+      //   const joinStr = (arg: [string, string]) => arg[0] + arg[1]
+      //   const getMainColor = () => {
+      //     return joinStr(['co', 'ral'])
+      //   }
+      //   `
+      //   const [evaluator, node] = getNode(value)
+      //   expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      // })
+
+      // test('when args are function', () => {
+      //   const value = `
+      //   const buildFirstArg = () => 'c' + 'o'
+      //   const joinStr = (a: () => string, b: string) => a() + b
+      //   const getMainColor = () => {
+      //     return joinStr(buildFirstArg, 'ral')
+      //   }
+      //   `
+      //   const [evaluator, node] = getNode(value)
+      //   expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      // })
+
+      test('when function is declared inside the function', () => {
+        const value = `
+        const getMainColor = () => {
+          const joinStr = (a: string, b: string) => a + b
+          return joinStr('co', 'ral')
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+    })
+
+    describe('when function declaration', () => {
+      test('when args are passed directly', () => {
+        const value = `
+        function joinStr(a: string, b: string) {
+          return a + b
+        }
+        const getMainColor = () => {
+          return joinStr('co', 'ral')
+        }
+      `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
+    })
   })
 })
