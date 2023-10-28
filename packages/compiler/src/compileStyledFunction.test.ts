@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { Project, SyntaxKind, TaggedTemplateExpression } from 'ts-morph'
-import { getAttrs, getTagName } from './compileStyledFunction'
+import { getAttrs, parseTaggedTemplateExpression } from './compileStyledFunction'
 
 const project = new Project()
 
@@ -16,8 +16,8 @@ describe('getTagName', () => {
       const value = `
         const Text = styled.p\`\`
       `
-      const result = getTagName(getTargetNode(value), 'styled')
-      expect(result).toBe('p')
+      const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+      expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
     })
 
     describe('with attrs', () => {
@@ -25,22 +25,22 @@ describe('getTagName', () => {
         const value = `
           const Text = styled.p.attrs({})\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
       test('taking function', () => {
         const value = `
           const Text = styled.p.attrs(() => ({}))\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
       test('chained', () => {
         const value = `
           const Text = styled.p.attrs({}).attrs(() => ({}))\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
     })
 
@@ -48,8 +48,8 @@ describe('getTagName', () => {
       const value = `
         const Text = styled.foo\`\`
       `
-      const result = getTagName(getTargetNode(value), 'styled')
-      expect(result).toBe('foo')
+      const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+      expect(result).toStrictEqual({ htmlTagName: 'foo', isStyledFunction: true })
     })
   })
 
@@ -58,8 +58,8 @@ describe('getTagName', () => {
       const value = `
         const Text = styled('p')\`\`
       `
-      const result = getTagName(getTargetNode(value), 'styled')
-      expect(result).toBe('p')
+      const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+      expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
     })
 
     describe('attrs', () => {
@@ -67,22 +67,22 @@ describe('getTagName', () => {
         const value = `
           const Text = styled('p').attrs({})\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
       test('taking function', () => {
         const value = `
           const Text = styled('p').attrs(() => ({}))\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
       test('chained', () => {
         const value = `
           const Text = styled('p').attrs({}).attrs(() => ({}))\`\`
         `
-        const result = getTagName(getTargetNode(value), 'styled')
-        expect(result).toBe('p')
+        const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+        expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
       })
     })
 
@@ -90,8 +90,8 @@ describe('getTagName', () => {
       const value = `
         const Text = styled('foo')\`\`
       `
-      const result = getTagName(getTargetNode(value), 'styled')
-      expect(result).toBe('foo')
+      const result = parseTaggedTemplateExpression(getTargetNode(value), 'styled')
+      expect(result).toStrictEqual({ htmlTagName: 'foo', isStyledFunction: true })
     })
   })
 })
