@@ -179,6 +179,16 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
   })
 
+  test('ObjectLiteralExpression', () => {
+    const value = `
+      const a = 'co'
+      const b = 'ral'
+      const color = [a, b];
+    `
+    const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrayLiteralExpression)
+    expect(evaluator.evaluateNode(node)).toStrictEqual(['co', 'ral'])
+  })
+
   test('ConditionalExpression', () => {
     const value = `
       const color = true ? 'coral' : 'lime';
@@ -264,16 +274,16 @@ describe('Evaluator', async () => {
       //   expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
       // })
 
-      // test('when args are array', () => {
-      //   const value = `
-      //   const joinStr = (arg: [string, string]) => arg[0] + arg[1]
-      //   const getMainColor = () => {
-      //     return joinStr(['co', 'ral'])
-      //   }
-      //   `
-      //   const [evaluator, node] = getNode(value)
-      //   expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
-      // })
+      test('when args are array', () => {
+        const value = `
+        const joinStr = (arg: [string, string]) => arg[0] + arg[1]
+        const getMainColor = () => {
+          return joinStr(['co', 'ral'])
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      })
 
       // test('when args are function', () => {
       //   const value = `

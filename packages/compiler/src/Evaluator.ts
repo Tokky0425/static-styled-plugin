@@ -23,6 +23,7 @@ type EvaluateExtra = IEnvironment['extra']
 type ErrorType = typeof TsEvalError
 type PrimitiveType = string | number
 type ObjectType = { [key: string]: (PrimitiveType | ObjectType) }
+type ArrayType = Array<any>
 type Definition = {
   ts?: typeof TS
   cssFunctionName: string | null
@@ -41,7 +42,7 @@ export class Evaluator {
     this.theme = props.theme
   }
 
-  evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ErrorType {
+  evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ArrayType | ErrorType {
     if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
       return node.getLiteralValue()
     } else if (Node.isBinaryExpression(node)) {
@@ -78,6 +79,7 @@ export class Evaluator {
       // for when parsing theme
       return this.evaluateObjectLiteralExpression(node)
     } else if (Node.isArrayLiteralExpression(node)) {
+      // e.g. ['co', 'ral']
       return this.evaluateArrayLiteralExpression(node)
     } else if (Node.isCallExpression(node)) {
       // e.g. someYourFunction('co', 'ral')
@@ -238,8 +240,23 @@ export class Evaluator {
     return TsEvalError
   }
 
-  evaluateArrayLiteralExpression(node: ArrayLiteralExpression): typeof TsEvalError {
-    // TODO implement me
+  evaluateArrayLiteralExpression(node: ArrayLiteralExpression) {
+    const elements = node.getElements()
+    for (const element of elements) {
+      const val = this.evaluateNode(element)
+      if (val === TsEvalError) return TsEvalError
+      element.replaceWithText(JSON.stringify(val))
+    }
+
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      typescript: this.definition.ts,
+      environment: { extra: this.extra }
+    })
+
+    if (evaluated.success && typeof evaluated.value === 'object') {
+      return evaluated.value as ArrayType
+    }
     return TsEvalError
   }
 
