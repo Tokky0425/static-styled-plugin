@@ -8,10 +8,10 @@ describe('Evaluator', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
 
-  const getFirstNode = (value: string, syntaxKind: SyntaxKind, withoutTheme?: boolean): [Evaluator, Node] => {
+  const getFirstNode = (value: string, syntaxKind: SyntaxKind, withoutTheme?: boolean, extra: Evaluator['extra'] = {}): [Evaluator, Node] => {
     const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
     const node = file.getFirstDescendant(node => node.getKind() === syntaxKind)!
-    const evaluator = new Evaluator({ extra: {}, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })
+    const evaluator = new Evaluator({ extra, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })
     return [evaluator, node]
   }
 
@@ -39,13 +39,33 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
-  test('PropertyAccessExpression', () => {
-    const value = `
-      const theme = { color: { main: 'coral' }};
-      const mainColor = theme.color.main;
-    `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
-    expect(evaluator.evaluateNode(node)).toBe('coral')
+  describe('PropertyAccessExpression', () => {
+    test('with as const', () => {
+      const value = `
+        const theme = { color: { main: 'coral' } } as const;
+        const mainColor = theme.color.main;
+      `
+      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('without as const', () => {
+      const value = `
+        const theme = { color: { main: 'coral' } };
+        const mainColor = theme.color.main;
+      `
+      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
+      expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+    })
+
+    test('with extra', () => {
+      const value = `
+        const firstName = user.name.firstName;
+      `
+      const extra = { user: { name: { firstName: 'Michael', lastName: 'Jackson' } } }
+      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression, true, extra)
+      expect(evaluator.evaluateNode(node)).toBe('Michael')
+    })
   })
 
   test('BinaryExpression', () => {

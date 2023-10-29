@@ -127,6 +127,8 @@ export class Evaluator {
     for (const node of referencesAsNode) {
       const nodeParent = node.getParentOrThrow()
       if (!Node.isPropertyAssignment(nodeParent)) continue
+      if (!this.recursivelyCheckIsAsConst(nodeParent)) continue
+
       const propertyInitializer = nodeParent.getInitializer()
       if (!propertyInitializer) continue
       const propertyInitializerValue = this.evaluateNode(propertyInitializer)
@@ -134,17 +136,30 @@ export class Evaluator {
       value = propertyInitializerValue
     }
 
-    if (!value && this.extra) {
-      const evaluated = evaluate({
-        node: node.compilerNode,
-        typescript: this.definition.ts,
-        environment: { extra: this.extra }
-      })
-      if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number' || typeof evaluated.value === 'object')) {
-        value = evaluated.value
-      }
-    }
+    if (!value) {
+      // when using ts-evaluator, it return a wrong value because it ignores re-assignment.
+      // e.g.
+      // ```
+      // const theme = { color: 'coral' }
+      // theme.color = 'red'
+      // const mainColor = theme.color // <- ts-evaluator evaluates as 'coral'
+      // ```
+      // so, when without `as const`, this method should return an error.
+      // but before returning an error, we need to check if it can evaluate properly with extra.
 
+      const accessorTextArr = node.getText().split('.')
+      const recursivelyGetValueFromExtra = (extra: EvaluateExtra, depth = 0): EvaluateExtra['string'] => {
+        const accessorName = accessorTextArr[depth]
+        const newValue = extra[accessorName]
+        if (typeof newValue === 'object' && newValue !== null) {
+          return recursivelyGetValueFromExtra(newValue as EvaluateExtra, depth + 1)
+        } else {
+          return newValue
+        }
+      }
+
+      value = recursivelyGetValueFromExtra(this.extra)
+    }
     return (value as PrimitiveType | ObjectType) || TsEvalError
   }
 
@@ -432,5 +447,15 @@ export class Evaluator {
       result[param.name] = args[index] === undefined ? param.defaultValue : args[index]
     })
     return result
+  }
+
+  private recursivelyCheckIsAsConst(node: Node): boolean {
+    const parent = node.getParent()
+    if (!parent) return false
+    if (Node.isAsExpression(parent)) {
+      return true
+    } else {
+      return this.recursivelyCheckIsAsConst(parent)
+    }
   }
 }
