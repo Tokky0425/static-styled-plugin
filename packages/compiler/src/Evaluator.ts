@@ -297,7 +297,6 @@ export class Evaluator {
 
     const definitions = expression.getDefinitions()
     let definitionNode: Node | undefined = undefined
-    // TODO check if it's declared by const (not let or var)
     for (const definitionInfo of definitions) {
       if (definitionNode) continue
       definitionNode = definitionInfo.getDeclarationNode()
@@ -310,6 +309,7 @@ export class Evaluator {
       /*
        * e.g. const joinStr = (a: string, b: string) => a + b
        **/
+      if (!this.recursivelyCheckIsDeclaredByConst(definitionNode)) return TsEvalError
       const initializerNode = definitionNode.getInitializer()
       if (!Node.isArrowFunction(initializerNode)) return TsEvalError
       targetNode = initializerNode

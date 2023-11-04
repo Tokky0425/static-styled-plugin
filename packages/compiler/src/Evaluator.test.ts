@@ -366,6 +366,17 @@ describe('Evaluator', async () => {
         const [evaluator, node] = getNode(value)
         expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
       })
+
+      test('when function is declared by let', () => {
+        const value = `
+        let joinStr = (a: string, b: string) => a + b
+        const getMainColor = () => {
+          return joinStr('co', 'ral')
+        }
+        `
+        const [evaluator, node] = getNode(value)
+        expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+      })
     })
 
     describe('when function declaration', () => {
