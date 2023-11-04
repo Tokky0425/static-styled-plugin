@@ -45,8 +45,9 @@ export class Evaluator {
   }
 
   evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ArrayType | ErrorType {
-    if (Node.isAsExpression(node)) {
-      return this.evaluateAsExpression(node)
+    if (Node.isAsExpression(node) || Node.isSatisfiesExpression(node)) {
+      const expressionNode = node.getExpression()
+      return this.evaluateNode(expressionNode)
     } else if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
       return node.getLiteralValue()
     } else if (Node.isBinaryExpression(node)) {
@@ -96,11 +97,6 @@ export class Evaluator {
     } else {
       return TsEvalError
     }
-  }
-
-  evaluateAsExpression(node: AsExpression) {
-    const expressionNode = node.getExpression()
-    return this.evaluateNode(expressionNode)
   }
 
   evaluateBinaryExpression(node: BinaryExpression) {

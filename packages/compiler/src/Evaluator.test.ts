@@ -23,6 +23,15 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toStrictEqual({ color: { main: 'coral' } })
   })
 
+  test('SatisfiesExpression', () => {
+    const value = `
+      type Theme = { color: { main: string } }
+      const theme = { color: { main: 'coral' } } as const satisfies Theme;
+    `
+    const [evaluator, node] = getFirstNode(value, SyntaxKind.SatisfiesExpression)
+    expect(evaluator.evaluateNode(node)).toStrictEqual({ color: { main: 'coral' } })
+  })
+
   test('StringLiteral', () => {
     const value = `
       const mainColor = 'coral';
