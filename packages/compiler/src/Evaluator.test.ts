@@ -113,6 +113,24 @@ describe('Evaluator', async () => {
       const [evaluator, node] = getTargetNode(value, 3)
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
+
+    test('object with `as const`', () => {
+      const value = `
+        const color = { main: 'coral' } as const;
+        const mainColor = color;
+      `
+      const [evaluator, node] = getTargetNode(value, 5)
+      expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
+    })
+
+    test('object without `as const`', () => {
+      const value = `
+        const color = { main: 'coral' };
+        const mainColor = color;
+      `
+      const [evaluator, node] = getTargetNode(value, 4)
+      expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+    })
   })
 
   test('BinaryExpression', () => {

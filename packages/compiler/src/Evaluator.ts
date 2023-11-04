@@ -9,6 +9,7 @@ import {
   BindingElement,
   BindingName,
   CallExpression,
+  ElementAccessExpression,
   FunctionDeclaration,
   Identifier,
   Node,
@@ -16,7 +17,8 @@ import {
   PropertyAccessExpression,
   ReturnStatement,
   TaggedTemplateExpression,
-  TemplateExpression
+  TemplateExpression,
+  VariableDeclaration
 } from 'ts-morph'
 
 type EvaluateExtra = IEnvironment['extra']
@@ -45,7 +47,7 @@ export class Evaluator {
   evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ArrayType | ErrorType {
     if (Node.isAsExpression(node)) {
       return this.evaluateAsExpression(node)
-    } else if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
+    } else if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
       return node.getLiteralValue()
     } else if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
@@ -59,18 +61,17 @@ export class Evaluator {
     } else if (Node.isTemplateExpression(node)) {
       // e.g. `${fontSize.m}px`
       return this.evaluateTemplateExpression(node)
-    } else if (Node.isTaggedTemplateExpression(node) && this.definition.cssFunctionName && node.getTag().getText() === this.definition.cssFunctionName) {
-      // e.g. css`
-      //   font-size: 16rem;
-      // `
-      return this.evaluateStyledTaggedTemplateExpression(node)
+    } else if (Node.isTaggedTemplateExpression(node)) {
+      if (this.definition.cssFunctionName && node.getTag().getText() === this.definition.cssFunctionName) {
+        // e.g. css`
+        //   font-size: 16rem;
+        // `
+        return this.evaluateStyledTaggedTemplateExpression(node)
+      }
+      return TsEvalError
     } else if (Node.isArrowFunction(node)) {
       if (inStyledFunction) {
         this.addAncestorThemeArgsToExtra(node)
-      } else {
-        // TODO add arg values to extra that comes from ancestor function call
-        // `this.addAncestorArgsToExtra(node)` should be similar to `addAncestorThemeArgsToExtra`,
-        // but it does not treat theme values because this arrow function node is called outside `styled` function
       }
       // e.g. (props) => props.fontSize.m
       return this.evaluateStyledArrowFunction(node)
@@ -88,15 +89,11 @@ export class Evaluator {
       return this.evaluateCallExpression(node)
     } else if (Node.isConditionalExpression(node)) {
       return TsEvalError
+    } else if (Node.isVariableDeclaration(node)) {
+      return this.evaluateVariableDeclaration(node)
+    } else if (Node.isElementAccessExpression(node)) {
+      return this.evaluateElementAccessExpression(node)
     } else {
-      const evaluated = evaluate({
-        node: node.compilerNode as any,
-        typescript: this.definition.ts,
-        environment: { extra: this.extra }
-      })
-      if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number')) {
-        return evaluated.value
-      }
       return TsEvalError
     }
   }
@@ -141,6 +138,7 @@ export class Evaluator {
       const propertyInitializerValue = this.evaluateNode(propertyInitializer)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
       value = propertyInitializerValue
+      break
     }
 
     if (!value) {
@@ -180,10 +178,10 @@ export class Evaluator {
     for (const node of referencesAsNode) {
       const nodeParent = node.getParentOrThrow()
       if (!Node.isVariableDeclaration(nodeParent)) continue
-      if (!this.recursivelyCheckIsDeclaredByConst(nodeParent)) break
       const propertyInitializerValue = this.evaluateNode(nodeParent)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
       value = propertyInitializerValue
+      break
     }
 
     if (!value) {
@@ -194,6 +192,32 @@ export class Evaluator {
     }
 
     return (value as PrimitiveType | ObjectType) || TsEvalError
+  }
+
+  evaluateVariableDeclaration(node: VariableDeclaration) {
+    const initializer = node.getInitializer()
+    if (!initializer) return TsEvalError
+    if (Node.isObjectLiteralExpression(initializer) || Node.isArrayLiteralExpression(initializer)) {
+      // when object literal or array literal, `as const` is required to be parsed
+      if (!this.recursivelyCheckIsAsConst(initializer)) return TsEvalError
+    } else {
+      // otherwise, it is required to be declared with `const` to be parsed
+      if (!this.recursivelyCheckIsDeclaredByConst(initializer)) return TsEvalError
+    }
+    return this.evaluateNode(initializer)
+  }
+
+  evaluateElementAccessExpression(node: ElementAccessExpression) {
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      typescript: this.definition.ts,
+      environment: { extra: this.extra }
+    })
+    if (evaluated.success) {
+      const value = evaluated.value
+      if (typeof value === 'string' || typeof value === 'number') return value
+    }
+    return TsEvalError
   }
 
   evaluateTemplateExpression(node: TemplateExpression) {
