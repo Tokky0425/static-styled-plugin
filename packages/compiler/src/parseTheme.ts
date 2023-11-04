@@ -1,4 +1,4 @@
-import { Node, Project } from 'ts-morph'
+import { Project } from 'ts-morph'
 import path from 'path'
 import fs from 'fs'
 import type { Theme } from './types'
@@ -26,16 +26,11 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
     if (themeResult) continue
     if (variableDeclaration.getName() === 'theme') {
       const initializer = variableDeclaration.getInitializer()
-      if (!Node.isAsExpression(initializer)) continue
-
-      const value = initializer.getExpression()
-      if (!value || !Node.isObjectLiteralExpression(value)) continue
-
       const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName: null }, theme: null })
-      const objectLiteralResult = evaluator.evaluateObjectLiteralExpression(value)
-      if (objectLiteralResult !== TsEvalError) {
-        themeResult = objectLiteralResult
-      }
+      const result = initializer ? evaluator.evaluateNode(initializer) : null
+
+      if (result === TsEvalError || typeof result === 'string' || typeof result === 'number' || result === null || Array.isArray(result)) return null
+      themeResult = result
     }
   }
 

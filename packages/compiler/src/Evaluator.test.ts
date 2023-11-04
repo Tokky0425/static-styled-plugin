@@ -15,6 +15,14 @@ describe('Evaluator', async () => {
     return [evaluator, node]
   }
 
+  test('AsExpression', () => {
+    const value = `
+      const theme = { color: { main: 'coral' } } as const;
+    `
+    const [evaluator, node] = getFirstNode(value, SyntaxKind.AsExpression)
+    expect(evaluator.evaluateNode(node)).toStrictEqual({ color: { main: 'coral' } })
+  })
+
   test('StringLiteral', () => {
     const value = `
       const mainColor = 'coral';
@@ -246,7 +254,7 @@ describe('Evaluator', async () => {
     expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
   })
 
-  test('ObjectLiteralExpression', () => {
+  test('ArrayLiteralExpression', () => {
     const value = `
       const a = 'co'
       const b = 'ral'

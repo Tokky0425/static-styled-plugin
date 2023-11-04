@@ -4,7 +4,7 @@ import * as TS from 'typescript'
 import { Theme } from './types'
 import {
   ArrayLiteralExpression,
-  ArrowFunction,
+  ArrowFunction, AsExpression,
   BinaryExpression,
   BindingElement,
   BindingName,
@@ -43,7 +43,9 @@ export class Evaluator {
   }
 
   evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ArrayType | ErrorType {
-    if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
+    if (Node.isAsExpression(node)) {
+      return this.evaluateAsExpression(node)
+    } else if (Node.isStringLiteral(node) || Node.isNumericLiteral(node)) {
       return node.getLiteralValue()
     } else if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
@@ -97,6 +99,11 @@ export class Evaluator {
       }
       return TsEvalError
     }
+  }
+
+  evaluateAsExpression(node: AsExpression) {
+    const expressionNode = node.getExpression()
+    return this.evaluateNode(expressionNode)
   }
 
   evaluateBinaryExpression(node: BinaryExpression) {
