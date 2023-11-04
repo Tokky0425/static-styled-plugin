@@ -227,6 +227,14 @@ describe('Evaluator', async () => {
         })
       })
     })
+
+    describe('NOT in styled function', () => {
+      const value = `
+        const getMainColor = (props) => props.theme.color.main;
+      `
+      const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
+      expect(evaluator.evaluateNode(node, false)).toBe(TsEvalError)
+    })
   })
 
   test('ObjectLiteralExpression', () => {
