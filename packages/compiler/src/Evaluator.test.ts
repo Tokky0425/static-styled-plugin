@@ -68,6 +68,45 @@ describe('Evaluator', async () => {
     })
   })
 
+  describe('Identifier', () => {
+    const getTargetNode = (value: string, nth: number, withoutTheme?: boolean, extra: Evaluator['extra'] = {}): [Evaluator, Node] => {
+      const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
+      const nodes = file.getDescendants()
+      let node
+      let count = 0
+
+      for (const nodeElement of nodes) {
+        if (Node.isIdentifier(nodeElement)) {
+          count += 1
+          if (count === nth) {
+            node = nodeElement
+          }
+        }
+      }
+
+      const evaluator = new Evaluator({ extra, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })
+      return [evaluator, node!]
+    }
+
+    test('declared by const', () => {
+      const value = `
+        const color = 'coral';
+        const mainColor = color;
+      `
+      const [evaluator, node] = getTargetNode(value, 3)
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('declared by let', () => {
+      const value = `
+        let color = 'coral';
+        const mainColor = color;
+      `
+      const [evaluator, node] = getTargetNode(value, 3)
+      expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+    })
+  })
+
   test('BinaryExpression', () => {
     const value = `
       const a = 'co';

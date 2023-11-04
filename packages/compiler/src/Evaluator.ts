@@ -127,7 +127,7 @@ export class Evaluator {
     for (const node of referencesAsNode) {
       const nodeParent = node.getParentOrThrow()
       if (!Node.isPropertyAssignment(nodeParent)) continue
-      if (!this.recursivelyCheckIsAsConst(nodeParent)) continue
+      if (!this.recursivelyCheckIsAsConst(nodeParent)) break
 
       const propertyInitializer = nodeParent.getInitializer()
       if (!propertyInitializer) continue
@@ -150,15 +150,18 @@ export class Evaluator {
       const accessorTextArr = node.getText().split('.')
       const recursivelyGetValueFromExtra = (extra: EvaluateExtra, depth = 0): EvaluateExtra['string'] => {
         const accessorName = accessorTextArr[depth]
-        const newValue = extra[accessorName]
-        if (typeof newValue === 'object' && newValue !== null) {
-          return recursivelyGetValueFromExtra(newValue as EvaluateExtra, depth + 1)
+        const valueFromExtra = extra[accessorName]
+        if (typeof valueFromExtra === 'object' && valueFromExtra !== null) {
+          return recursivelyGetValueFromExtra(valueFromExtra as EvaluateExtra, depth + 1)
         } else {
-          return newValue
+          return valueFromExtra
         }
       }
 
-      value = recursivelyGetValueFromExtra(this.extra)
+      const valueFromExtra = recursivelyGetValueFromExtra(this.extra)
+      if ((typeof valueFromExtra === 'string' || typeof valueFromExtra === 'number' || typeof valueFromExtra === 'object')) {
+        value = valueFromExtra
+      }
     }
     return (value as PrimitiveType | ObjectType) || TsEvalError
   }
@@ -170,19 +173,16 @@ export class Evaluator {
     for (const node of referencesAsNode) {
       const nodeParent = node.getParentOrThrow()
       if (!Node.isVariableDeclaration(nodeParent)) continue
+      if (!this.recursivelyCheckIsDeclaredByConst(nodeParent)) break
       const propertyInitializerValue = this.evaluateNode(nodeParent)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
       value = propertyInitializerValue
     }
 
-    if (!value && this.extra) {
-      const evaluated = evaluate({
-        node: node.compilerNode,
-        typescript: this.definition.ts,
-        environment: { extra: this.extra }
-      })
-      if (evaluated.success && (typeof evaluated.value === 'string' || typeof evaluated.value === 'number' || typeof evaluated.value === 'object')) {
-        value = evaluated.value
+    if (!value) {
+      const valueFromExtra  = this.extra[node.getText()]
+      if ((typeof valueFromExtra === 'string' || typeof valueFromExtra === 'number' || typeof valueFromExtra === 'object')) {
+        value = valueFromExtra
       }
     }
 
@@ -456,6 +456,16 @@ export class Evaluator {
       return true
     } else {
       return this.recursivelyCheckIsAsConst(parent)
+    }
+  }
+
+  private recursivelyCheckIsDeclaredByConst(node: Node): boolean {
+    const parent = node.getParent()
+    if (!parent) return false
+    if (Node.isVariableDeclarationList(parent)) {
+      return parent.getText().startsWith('const')
+    } else {
+      return this.recursivelyCheckIsDeclaredByConst(parent)
     }
   }
 }
