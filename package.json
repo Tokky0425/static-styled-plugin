@@ -9,7 +9,9 @@
     "style-registry": "pnpm -F \"style-registry\"",
     "vite-plugin": "pnpm -F \"vite-plugin\"",
     "webpack-plugin": "pnpm -F \"webpack-plugin\"",
-    "next-plugin": "pnpm -F \"next-plugin\""
+    "next-plugin": "pnpm -F \"next-plugin\"",
+    "lint:eslint": "eslint 'packages/**/src/*.ts'",
+    "format:eslint": "eslint --fix 'packages/**/src/*.ts'"
   },
   "engines": {
     "pnpm": "8.6.7",
@@ -23,6 +25,9 @@
     "typescript": "5.1.6"
   },
   "devDependencies": {
-    "@types/node": "20.4.3"
+    "@types/node": "20.4.3",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.53.0"
   }
 }
