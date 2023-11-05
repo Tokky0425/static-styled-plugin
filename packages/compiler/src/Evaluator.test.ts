@@ -263,7 +263,7 @@ describe('Evaluator', async () => {
       })
     })
 
-    describe('NOT in styled function', () => {
+    test('NOT in styled function', () => {
       const value = `
         const getMainColor = (props) => props.theme.color.main;
       `
