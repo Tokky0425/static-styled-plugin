@@ -10,8 +10,10 @@
     "vite-plugin": "pnpm -F \"vite-plugin\"",
     "webpack-plugin": "pnpm -F \"webpack-plugin\"",
     "next-plugin": "pnpm -F \"next-plugin\"",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint 'packages/**/src/*.ts'",
     "lint:prettier": "prettier --check 'packages/**/src/*.ts'",
+    "format": "pnpm format:eslint & pnpm format:prettier",
     "format:eslint": "eslint --fix 'packages/**/src/*.ts'",
     "format:prettier": "prettier --write 'packages/**/src/*.ts'"
   },
