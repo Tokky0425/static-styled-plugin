@@ -11,7 +11,9 @@
     "webpack-plugin": "pnpm -F \"webpack-plugin\"",
     "next-plugin": "pnpm -F \"next-plugin\"",
     "lint:eslint": "eslint 'packages/**/src/*.ts'",
-    "format:eslint": "eslint --fix 'packages/**/src/*.ts'"
+    "lint:prettier": "prettier --check 'packages/**/src/*.ts'",
+    "format:eslint": "eslint --fix 'packages/**/src/*.ts'",
+    "format:prettier": "prettier --write 'packages/**/src/*.ts'"
   },
   "engines": {
     "pnpm": "8.6.7",
@@ -28,6 +30,8 @@
     "@types/node": "20.4.3",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.53.0"
+    "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.3"
   }
 }
