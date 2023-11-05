@@ -6,7 +6,7 @@ import { Theme, compile } from '@static-styled-plugin/compiler'
 import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
-const injectedStylePath = require.resolve(`../assets/injectedStyle.css`)
+const injectedStylePath = require.resolve('../assets/injectedStyle.css')
 
 const loader: LoaderDefinitionFunction<{ theme: Theme | null, cssOutputDir: string | null }> = function(sourceCode: string) {
   const options = this.getOptions()

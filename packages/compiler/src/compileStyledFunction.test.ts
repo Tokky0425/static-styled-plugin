@@ -104,41 +104,41 @@ describe('getAttrs', () => {
   }
 
   test('no attrs', () => {
-    const value = `const Text = styled.p\`\``
+    const value = 'const Text = styled.p``'
     const result = getAttrs(getTargetNode(value))
     expect(result).toStrictEqual([])
   })
 
   describe('attrs', () => {
     test('taking function', () => {
-      const value = `const Text = styled.p.attrs(() => ({ className: 'foo' }))\`\``
+      const value = 'const Text = styled.p.attrs(() => ({ className: \'foo\' }))``'
       const result = getAttrs(getTargetNode(value))
       expect(result).toStrictEqual([{
         nodeKindName: 'ArrowFunction',
-        text: `() => ({ className: 'foo' })`
+        text: '() => ({ className: \'foo\' })'
       }])
     })
 
     test('taking object', () => {
-      const value = `const Text = styled.p.attrs({ className: 'bar' })\`\``
+      const value = 'const Text = styled.p.attrs({ className: \'bar\' })``'
       const result = getAttrs(getTargetNode(value))
       expect(result).toStrictEqual([{
         nodeKindName: 'ObjectLiteralExpression',
-        text: `{ className: 'bar' }`
+        text: '{ className: \'bar\' }'
       }])
     })
 
     test('chained', () => {
-      const value = `const Text = styled.p.attrs(() => ({ className: 'foo' })).attrs({ style: { width: 100 } })\`\``
+      const value = 'const Text = styled.p.attrs(() => ({ className: \'foo\' })).attrs({ style: { width: 100 } })``'
       const result = getAttrs(getTargetNode(value))
       expect(result).toStrictEqual([
         {
           nodeKindName: 'ArrowFunction',
-          text: `() => ({ className: 'foo' })`
+          text: '() => ({ className: \'foo\' })'
         },
         {
           nodeKindName: 'ObjectLiteralExpression',
-          text: `{ style: { width: 100 } }`
+          text: '{ style: { width: 100 } }'
         }
       ])
     })

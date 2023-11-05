@@ -1,7 +1,7 @@
 import path from 'path'
 import { Plugin, ResolvedConfig } from 'vite'
 import { compile, parseTheme } from '@static-styled-plugin/compiler'
-import { styleRegistry } from "@static-styled-plugin/style-registry"
+import { styleRegistry } from '@static-styled-plugin/style-registry'
 
 type Options = {
   themeFilePath?: string
