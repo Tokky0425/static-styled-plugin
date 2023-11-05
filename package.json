@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
+    "test": "pnpm --parallel --filter \"./packages/**\" test",
     "compiler": "pnpm -F \"compiler\"",
     "style-registry": "pnpm -F \"style-registry\"",
     "vite-plugin": "pnpm -F \"vite-plugin\"",
