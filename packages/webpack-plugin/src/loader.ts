@@ -8,14 +8,22 @@ import { styleRegistry } from '@static-styled-plugin/style-registry'
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve('../assets/injectedStyle.css')
 
-const loader: LoaderDefinitionFunction<{ theme: Theme | null, cssOutputDir: string | null }> = function(sourceCode: string) {
+const loader: LoaderDefinitionFunction<{
+  theme: Theme | null
+  cssOutputDir: string | null
+}> = function (sourceCode: string) {
   const options = this.getOptions()
   const { theme, cssOutputDir } = options
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const { code, useClientExpressionExtracted, shouldUseClient } = compile(sourceCode, resourcePath, theme)
-  const useClientExpression = (useClientExpressionExtracted || shouldUseClient) ? '\'use client\';\n' : ''
+  const { code, useClientExpressionExtracted, shouldUseClient } = compile(
+    sourceCode,
+    resourcePath,
+    theme,
+  )
+  const useClientExpression =
+    useClientExpressionExtracted || shouldUseClient ? "'use client';\n" : ''
 
   const cssString = styleRegistry.getRule()
   if (!cssString) {
@@ -38,12 +46,13 @@ const loader: LoaderDefinitionFunction<{ theme: Theme | null, cssOutputDir: stri
     callback(null, useClientExpression + importCSSIdentifier + code)
   } else {
     const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
-      sourceCode: cssString
+      sourceCode: cssString,
     })}`
     const importCSSIdentifier = `import ${JSON.stringify(
       this.utils.contextify(
         this.context || this.rootContext,
-        `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`)
+        `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`,
+      ),
     )};\n`
     callback(null, useClientExpression + importCSSIdentifier + code)
   }

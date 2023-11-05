@@ -6,7 +6,11 @@ export function getCssFunctionName(file: SourceFile): string | null {
 
   for (const importDeclaration of importDeclarations) {
     if (cssFunctionName) continue
-    if (importDeclaration.getModuleSpecifier().getLiteralText() !== 'styled-components') continue
+    if (
+      importDeclaration.getModuleSpecifier().getLiteralText() !==
+      'styled-components'
+    )
+      continue
 
     const importClause = importDeclaration.getImportClause()
     const namedImports = importClause?.getNamedImports()

@@ -28,8 +28,13 @@ export function staticStyledPlugin(options?: Options): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const { code, useClientExpressionExtracted, shouldUseClient } = compile(sourceCode, id, theme)
-      const useClientExpression = (useClientExpressionExtracted || shouldUseClient) ? '\'use client\';\n' : ''
+      const { code, useClientExpressionExtracted, shouldUseClient } = compile(
+        sourceCode,
+        id,
+        theme,
+      )
+      const useClientExpression =
+        useClientExpressionExtracted || shouldUseClient ? "'use client';\n" : ''
       const cssString = styleRegistry.getRule()
       if (!cssString) return useClientExpression + code
       styleRegistry.reset()
@@ -38,14 +43,26 @@ export function staticStyledPlugin(options?: Options): Plugin {
         // Manually injecting style tag by injectDevelopmentCSS
         // Reason: Vite injects style tag at the end of head tag when HMR occurs, but style tag by styled-components should come last
         const rootRelativeFilePath = path.relative(process.cwd() + '/src', id)
-        const cssRelativeFilePath = path.normalize(`${rootRelativeFilePath.replace(targetExtensionRegex, '')}.css`)
-        return useClientExpression + injectDevelopmentCSS(cssString, cssRelativeFilePath) + code
+        const cssRelativeFilePath = path.normalize(
+          `${rootRelativeFilePath.replace(targetExtensionRegex, '')}.css`,
+        )
+        return (
+          useClientExpression +
+          injectDevelopmentCSS(cssString, cssRelativeFilePath) +
+          code
+        )
       }
 
-      const cssAbsolutePath = path.normalize(`${id.replace(targetExtensionRegex, '')}.css`)
+      const cssAbsolutePath = path.normalize(
+        `${id.replace(targetExtensionRegex, '')}.css`,
+      )
       const cssMapKey = virtualModuleId + cssAbsolutePath
       cssMap[cssMapKey] = cssString
-      return useClientExpression + `import "${virtualModuleId + cssAbsolutePath}";\n` + code
+      return (
+        useClientExpression +
+        `import "${virtualModuleId + cssAbsolutePath}";\n` +
+        code
+      )
     },
     resolveId(id) {
       if (id.startsWith(virtualModuleId)) {

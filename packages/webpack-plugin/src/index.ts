@@ -26,9 +26,9 @@ export class StaticStyledPlugin {
           options: {
             theme: this.theme,
             cssOutputDir: this.cssOutputDir,
-          }
-        }
-      ]
+          },
+        },
+      ],
     })
   }
 }

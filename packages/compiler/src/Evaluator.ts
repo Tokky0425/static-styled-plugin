@@ -18,13 +18,13 @@ import {
   ReturnStatement,
   TaggedTemplateExpression,
   TemplateExpression,
-  VariableDeclaration
+  VariableDeclaration,
 } from 'ts-morph'
 
 type EvaluateExtra = IEnvironment['extra']
 type ErrorType = typeof TsEvalError
 type PrimitiveType = string | number
-type ObjectType = { [key: string]: (PrimitiveType | ObjectType) }
+type ObjectType = { [key: string]: PrimitiveType | ObjectType }
 type ArrayType = Array<unknown>
 type Definition = {
   ts?: typeof TS
@@ -38,17 +38,28 @@ export class Evaluator {
   definition: Definition
   theme: Theme | null
 
-  constructor(props: { extra: EvaluateExtra, definition: Definition, theme: Theme | null }) {
+  constructor(props: {
+    extra: EvaluateExtra
+    definition: Definition
+    theme: Theme | null
+  }) {
     this.extra = props.extra
     this.definition = props.definition
     this.theme = props.theme
   }
 
-  evaluateNode(node: Node, inStyledFunction?: boolean): PrimitiveType | ObjectType | ArrayType | ErrorType {
+  evaluateNode(
+    node: Node,
+    inStyledFunction?: boolean,
+  ): PrimitiveType | ObjectType | ArrayType | ErrorType {
     if (Node.isAsExpression(node) || Node.isSatisfiesExpression(node)) {
       const expressionNode = node.getExpression()
       return this.evaluateNode(expressionNode)
-    } else if (Node.isStringLiteral(node) || Node.isNumericLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
+    } else if (
+      Node.isStringLiteral(node) ||
+      Node.isNumericLiteral(node) ||
+      Node.isNoSubstitutionTemplateLiteral(node)
+    ) {
       return node.getLiteralValue()
     } else if (Node.isBinaryExpression(node)) {
       // e.g. width * 2
@@ -63,7 +74,10 @@ export class Evaluator {
       // e.g. `${fontSize.m}px`
       return this.evaluateTemplateExpression(node)
     } else if (Node.isTaggedTemplateExpression(node)) {
-      if (this.definition.cssFunctionName && node.getTag().getText() === this.definition.cssFunctionName) {
+      if (
+        this.definition.cssFunctionName &&
+        node.getTag().getText() === this.definition.cssFunctionName
+      ) {
         // e.g. css`
         //   font-size: 16rem;
         // `
@@ -105,13 +119,15 @@ export class Evaluator {
     for (const item of items) {
       const value = this.evaluateNode(item)
       if (value === TsEvalError) return TsEvalError
-      item.replaceWithText(typeof value === 'string' ? `'${value}'` : String(value))
+      item.replaceWithText(
+        typeof value === 'string' ? `'${value}'` : String(value),
+      )
     }
 
     const evaluated = evaluate({
       node: node.compilerNode,
       typescript: this.definition.ts,
-      environment: { extra: this.extra }
+      environment: { extra: this.extra },
     })
     if (evaluated.success) {
       const value = evaluated.value
@@ -149,18 +165,28 @@ export class Evaluator {
       // but before returning an error, we need to check if it can evaluate properly with extra.
 
       const accessorTextArr = node.getText().split('.')
-      const recursivelyGetValueFromExtra = (extra: EvaluateExtra, depth = 0): EvaluateExtra['string'] => {
+      const recursivelyGetValueFromExtra = (
+        extra: EvaluateExtra,
+        depth = 0,
+      ): EvaluateExtra['string'] => {
         const accessorName = accessorTextArr[depth]
         const valueFromExtra = extra[accessorName]
         if (typeof valueFromExtra === 'object' && valueFromExtra !== null) {
-          return recursivelyGetValueFromExtra(valueFromExtra as EvaluateExtra, depth + 1)
+          return recursivelyGetValueFromExtra(
+            valueFromExtra as EvaluateExtra,
+            depth + 1,
+          )
         } else {
           return valueFromExtra
         }
       }
 
       const valueFromExtra = recursivelyGetValueFromExtra(this.extra)
-      if ((typeof valueFromExtra === 'string' || typeof valueFromExtra === 'number' || typeof valueFromExtra === 'object')) {
+      if (
+        typeof valueFromExtra === 'string' ||
+        typeof valueFromExtra === 'number' ||
+        typeof valueFromExtra === 'object'
+      ) {
         value = valueFromExtra
       }
     }
@@ -181,8 +207,12 @@ export class Evaluator {
     }
 
     if (!value) {
-      const valueFromExtra  = this.extra[node.getText()]
-      if ((typeof valueFromExtra === 'string' || typeof valueFromExtra === 'number' || typeof valueFromExtra === 'object')) {
+      const valueFromExtra = this.extra[node.getText()]
+      if (
+        typeof valueFromExtra === 'string' ||
+        typeof valueFromExtra === 'number' ||
+        typeof valueFromExtra === 'object'
+      ) {
         value = valueFromExtra
       }
     }
@@ -193,12 +223,16 @@ export class Evaluator {
   evaluateVariableDeclaration(node: VariableDeclaration) {
     const initializer = node.getInitializer()
     if (!initializer) return TsEvalError
-    if (Node.isObjectLiteralExpression(initializer) || Node.isArrayLiteralExpression(initializer)) {
+    if (
+      Node.isObjectLiteralExpression(initializer) ||
+      Node.isArrayLiteralExpression(initializer)
+    ) {
       // when object literal or array literal, `as const` is required to be parsed
       if (!this.recursivelyCheckIsAsConst(initializer)) return TsEvalError
     } else {
       // otherwise, it is required to be declared with `const` to be parsed
-      if (!this.recursivelyCheckIsDeclaredByConst(initializer)) return TsEvalError
+      if (!this.recursivelyCheckIsDeclaredByConst(initializer))
+        return TsEvalError
     }
     return this.evaluateNode(initializer)
   }
@@ -207,7 +241,7 @@ export class Evaluator {
     const evaluated = evaluate({
       node: node.compilerNode,
       typescript: this.definition.ts,
-      environment: { extra: this.extra }
+      environment: { extra: this.extra },
     })
     if (evaluated.success) {
       const value = evaluated.value
@@ -226,7 +260,7 @@ export class Evaluator {
       const templateSpanExpression = templateSpan.getExpression()
       const value = this.evaluateNode(templateSpanExpression)
       if (value === TsEvalError) return TsEvalError
-      result += (value + templateMiddle)
+      result += value + templateMiddle
     }
 
     return result
@@ -248,7 +282,7 @@ export class Evaluator {
         const templateSpanExpression = templateSpan.getExpression()
         const value = this.evaluateNode(templateSpanExpression, true)
         if (value === TsEvalError) return TsEvalError
-        result += (value + templateMiddle)
+        result += value + templateMiddle
       }
     }
     return result
@@ -273,7 +307,7 @@ export class Evaluator {
     const evaluated = evaluate({
       node: node.compilerNode,
       typescript: this.definition.ts,
-      environment: { extra: this.extra }
+      environment: { extra: this.extra },
     })
 
     if (evaluated.success && typeof evaluated.value === 'object') {
@@ -293,7 +327,7 @@ export class Evaluator {
     const evaluated = evaluate({
       node: node.compilerNode,
       typescript: this.definition.ts,
-      environment: { extra: this.extra }
+      environment: { extra: this.extra },
     })
 
     if (evaluated.success && typeof evaluated.value === 'object') {
@@ -336,7 +370,8 @@ export class Evaluator {
       /*
        * e.g. const joinStr = (a: string, b: string) => a + b
        **/
-      if (!this.recursivelyCheckIsDeclaredByConst(definitionNode)) return TsEvalError
+      if (!this.recursivelyCheckIsDeclaredByConst(definitionNode))
+        return TsEvalError
       const initializerNode = definitionNode.getInitializer()
       if (!Node.isArrowFunction(initializerNode)) return TsEvalError
       targetNode = initializerNode
@@ -353,19 +388,34 @@ export class Evaluator {
       const defaultValueNode = param.getInitializer()
       return {
         name: param.getName(),
-        defaultValue: defaultValueNode && new Evaluator({ extra: {}, definition: { ts: this.definition.ts, cssFunctionName: null } , theme: null }).evaluateNode(defaultValueNode)
+        defaultValue:
+          defaultValueNode &&
+          new Evaluator({
+            extra: {},
+            definition: { ts: this.definition.ts, cssFunctionName: null },
+            theme: null,
+          }).evaluateNode(defaultValueNode),
       }
     })
 
-    const extraForEvaluateFunction = this.buildExtraFromArgsAndParams(argumentNodesMeta, paramsMeta)
-    const functionEvaluator = new Evaluator({ extra: extraForEvaluateFunction, definition: { ts: this.definition.ts, cssFunctionName: null } , theme: null })
+    const extraForEvaluateFunction = this.buildExtraFromArgsAndParams(
+      argumentNodesMeta,
+      paramsMeta,
+    )
+    const functionEvaluator = new Evaluator({
+      extra: extraForEvaluateFunction,
+      definition: { ts: this.definition.ts, cssFunctionName: null },
+      theme: null,
+    })
     return functionEvaluator.evaluateNode(targetNode)
   }
 
   evaluateStyledArrowFunction(node: ArrowFunction) {
     const body = node.getBody()
     if (Node.isBlock(body)) {
-      const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
+      const returnStatements = body
+        .getStatements()
+        .filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
       if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
       const expression = returnStatements[0].getExpression()
       if (!expression) return TsEvalError
@@ -378,7 +428,9 @@ export class Evaluator {
   evaluateFunctionDeclaration(node: FunctionDeclaration) {
     const body = node.getBody()
     if (Node.isBlock(body)) {
-      const returnStatements = body.getStatements().filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
+      const returnStatements = body
+        .getStatements()
+        .filter((s) => Node.isReturnStatement(s)) as ReturnStatement[]
       if (returnStatements.length !== 1) return TsEvalError // because conditional return is not supported
       const expression = returnStatements[0].getExpression()
       if (!expression) return TsEvalError
@@ -408,7 +460,7 @@ export class Evaluator {
         if (this.theme) {
           this.extra = {
             ...this.recursivelyBuildExtraBasedOnTheme(bindingElements, {
-              theme: this.theme
+              theme: this.theme,
             }),
             ...this.extra, // to prioritize descendant's args, ...extra should come at last
           }
@@ -427,7 +479,10 @@ export class Evaluator {
     }
   }
 
-  private getAllAncestorParams(node: Node, params: BindingName[] = []): BindingName[] {
+  private getAllAncestorParams(
+    node: Node,
+    params: BindingName[] = [],
+  ): BindingName[] {
     const parent = node.getParent()
     if (!parent) return params
     if (Node.isArrowFunction(parent)) {
@@ -438,7 +493,11 @@ export class Evaluator {
     return this.getAllAncestorParams(parent, params)
   }
 
-  private recursivelyBuildExtraBasedOnTheme(bindingElements: BindingElement[], themeFragment: Theme, extra: EvaluateExtra = {}): EvaluateExtra {
+  private recursivelyBuildExtraBasedOnTheme(
+    bindingElements: BindingElement[],
+    themeFragment: Theme,
+    extra: EvaluateExtra = {},
+  ): EvaluateExtra {
     for (const bindingElement of bindingElements) {
       const name = bindingElement.getNameNode()
       const propertyName = bindingElement.getPropertyNameNode()
@@ -461,17 +520,30 @@ export class Evaluator {
         const keyForExtra = propertyName?.getText() // 'theme'
         if (!keyForExtra) continue // not sure if this possibly happens
         const newThemeFragment = themeFragment[keyForExtra]
-        if (!newThemeFragment || typeof newThemeFragment === 'string' || typeof newThemeFragment === 'number') continue
-        this.recursivelyBuildExtraBasedOnTheme(name.getElements(), newThemeFragment, extra)
+        if (
+          !newThemeFragment ||
+          typeof newThemeFragment === 'string' ||
+          typeof newThemeFragment === 'number'
+        )
+          continue
+        this.recursivelyBuildExtraBasedOnTheme(
+          name.getElements(),
+          newThemeFragment,
+          extra,
+        )
       }
     }
     return extra
   }
 
-  private buildExtraFromArgsAndParams(args: unknown[], params: Array<{ name: string, defaultValue: unknown }>) {
+  private buildExtraFromArgsAndParams(
+    args: unknown[],
+    params: Array<{ name: string; defaultValue: unknown }>,
+  ) {
     const result: { [key: string]: unknown } = {}
     params.forEach((param, index) => {
-      result[param.name] = args[index] === undefined ? param.defaultValue : args[index]
+      result[param.name] =
+        args[index] === undefined ? param.defaultValue : args[index]
     })
     return result as EvaluateExtra
   }

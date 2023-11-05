@@ -8,10 +8,23 @@ describe('Evaluator', async () => {
   const ts = (await import('typescript')).default
   const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
 
-  const getFirstNode = (value: string, syntaxKind: SyntaxKind, withoutTheme?: boolean, extra: Evaluator['extra'] = {}): [Evaluator, Node] => {
-    const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
-    const node = file.getFirstDescendant(node => node.getKind() === syntaxKind)!
-    const evaluator = new Evaluator({ extra, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })
+  const getFirstNode = (
+    value: string,
+    syntaxKind: SyntaxKind,
+    withoutTheme?: boolean,
+    extra: Evaluator['extra'] = {},
+  ): [Evaluator, Node] => {
+    const file = project.createSourceFile('virtual.ts', value, {
+      overwrite: true,
+    })
+    const node = file.getFirstDescendant(
+      (node) => node.getKind() === syntaxKind,
+    )!
+    const evaluator = new Evaluator({
+      extra,
+      definition: { ts, cssFunctionName: 'css' },
+      theme: withoutTheme ? null : theme,
+    })
     return [evaluator, node]
   }
 
@@ -20,7 +33,9 @@ describe('Evaluator', async () => {
       const theme = { color: { main: 'coral' } } as const;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.AsExpression)
-    expect(evaluator.evaluateNode(node)).toStrictEqual({ color: { main: 'coral' } })
+    expect(evaluator.evaluateNode(node)).toStrictEqual({
+      color: { main: 'coral' },
+    })
   })
 
   test('SatisfiesExpression', () => {
@@ -28,8 +43,13 @@ describe('Evaluator', async () => {
       type Theme = { color: { main: string } }
       const theme = { color: { main: 'coral' } } as const satisfies Theme;
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.SatisfiesExpression)
-    expect(evaluator.evaluateNode(node)).toStrictEqual({ color: { main: 'coral' } })
+    const [evaluator, node] = getFirstNode(
+      value,
+      SyntaxKind.SatisfiesExpression,
+    )
+    expect(evaluator.evaluateNode(node)).toStrictEqual({
+      color: { main: 'coral' },
+    })
   })
 
   test('StringLiteral', () => {
@@ -52,7 +72,10 @@ describe('Evaluator', async () => {
     const value = `
       const mainColor = \`coral\`;
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.NoSubstitutionTemplateLiteral)
+    const [evaluator, node] = getFirstNode(
+      value,
+      SyntaxKind.NoSubstitutionTemplateLiteral,
+    )
     expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
@@ -62,7 +85,10 @@ describe('Evaluator', async () => {
         const theme = { color: { main: 'coral' } } as const;
         const mainColor = theme.color.main;
       `
-      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
+      const [evaluator, node] = getFirstNode(
+        value,
+        SyntaxKind.PropertyAccessExpression,
+      )
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
@@ -71,7 +97,10 @@ describe('Evaluator', async () => {
         const theme = { color: { main: 'coral' } };
         const mainColor = theme.color.main;
       `
-      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression)
+      const [evaluator, node] = getFirstNode(
+        value,
+        SyntaxKind.PropertyAccessExpression,
+      )
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
 
@@ -79,15 +108,29 @@ describe('Evaluator', async () => {
       const value = `
         const firstName = user.name.firstName;
       `
-      const extra = { user: { name: { firstName: 'Michael', lastName: 'Jackson' } } }
-      const [evaluator, node] = getFirstNode(value, SyntaxKind.PropertyAccessExpression, true, extra)
+      const extra = {
+        user: { name: { firstName: 'Michael', lastName: 'Jackson' } },
+      }
+      const [evaluator, node] = getFirstNode(
+        value,
+        SyntaxKind.PropertyAccessExpression,
+        true,
+        extra,
+      )
       expect(evaluator.evaluateNode(node)).toBe('Michael')
     })
   })
 
   describe('Identifier', () => {
-    const getTargetNode = (value: string, nth: number, withoutTheme?: boolean, extra: Evaluator['extra'] = {}): [Evaluator, Node] => {
-      const file = project.createSourceFile('virtual.ts', value, { overwrite: true })
+    const getTargetNode = (
+      value: string,
+      nth: number,
+      withoutTheme?: boolean,
+      extra: Evaluator['extra'] = {},
+    ): [Evaluator, Node] => {
+      const file = project.createSourceFile('virtual.ts', value, {
+        overwrite: true,
+      })
       const nodes = file.getDescendants()
       let node
       let count = 0
@@ -101,7 +144,11 @@ describe('Evaluator', async () => {
         }
       }
 
-      const evaluator = new Evaluator({ extra, definition: { ts, cssFunctionName: 'css' }, theme: withoutTheme ? null : theme })
+      const evaluator = new Evaluator({
+        extra,
+        definition: { ts, cssFunctionName: 'css' },
+        theme: withoutTheme ? null : theme,
+      })
       return [evaluator, node!]
     }
 
@@ -176,7 +223,10 @@ describe('Evaluator', async () => {
       const value = `
         const mainColor = \`coral\`;
       `
-      const [evaluator, node] = getFirstNode(value, SyntaxKind.NoSubstitutionTemplateLiteral)
+      const [evaluator, node] = getFirstNode(
+        value,
+        SyntaxKind.NoSubstitutionTemplateLiteral,
+      )
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
@@ -185,7 +235,10 @@ describe('Evaluator', async () => {
         const value = `
           const getMainColor = () => \`\${css\`color: coral;\`}\`
         `
-        const [evaluator, node] = getFirstNode(value, SyntaxKind.TaggedTemplateExpression)
+        const [evaluator, node] = getFirstNode(
+          value,
+          SyntaxKind.TaggedTemplateExpression,
+        )
         expect(evaluator.evaluateNode(node)).toBe('color: coral;')
       })
 
@@ -193,7 +246,10 @@ describe('Evaluator', async () => {
         const value = `
           const getMainColor = () => \`\${foo\`color: coral;\`}\`
         `
-        const [evaluator, node] = getFirstNode(value, SyntaxKind.TaggedTemplateExpression)
+        const [evaluator, node] = getFirstNode(
+          value,
+          SyntaxKind.TaggedTemplateExpression,
+        )
         expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
       })
     })
@@ -222,7 +278,10 @@ describe('Evaluator', async () => {
           const value = `
             const getMainColor = ({ theme }) => theme.color.main;
           `
-          const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
+          const [evaluator, node] = getFirstNode(
+            value,
+            SyntaxKind.ArrowFunction,
+          )
           expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
 
@@ -230,7 +289,10 @@ describe('Evaluator', async () => {
           const value = `
             const getMainColor = ({ theme: myTheme }) => myTheme.color.main;
           `
-          const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
+          const [evaluator, node] = getFirstNode(
+            value,
+            SyntaxKind.ArrowFunction,
+          )
           expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
 
@@ -238,7 +300,10 @@ describe('Evaluator', async () => {
           const value = `
             const getMainColor = ({ someObj }) => someObj.color.main;
           `
-          const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
+          const [evaluator, node] = getFirstNode(
+            value,
+            SyntaxKind.ArrowFunction,
+          )
           expect(evaluator.evaluateNode(node, true)).toBe(TsEvalError)
         })
 
@@ -246,7 +311,11 @@ describe('Evaluator', async () => {
           const value = `
             const getMainColor = (props) => props.theme.color.main;
           `
-          const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction, true)
+          const [evaluator, node] = getFirstNode(
+            value,
+            SyntaxKind.ArrowFunction,
+            true,
+          )
           expect(evaluator.evaluateNode(node, true)).toBe(TsEvalError)
         })
 
@@ -257,7 +326,10 @@ describe('Evaluator', async () => {
               return result
             };
           `
-          const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrowFunction)
+          const [evaluator, node] = getFirstNode(
+            value,
+            SyntaxKind.ArrowFunction,
+          )
           expect(evaluator.evaluateNode(node, true)).toBe('coral')
         })
       })
@@ -277,7 +349,10 @@ describe('Evaluator', async () => {
       const mainColor = 'coral'
       const color = { main: mainColor };
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.ObjectLiteralExpression)
+    const [evaluator, node] = getFirstNode(
+      value,
+      SyntaxKind.ObjectLiteralExpression,
+    )
     expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
   })
 
@@ -287,7 +362,10 @@ describe('Evaluator', async () => {
       const b = 'ral'
       const color = [a, b];
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.ArrayLiteralExpression)
+    const [evaluator, node] = getFirstNode(
+      value,
+      SyntaxKind.ArrayLiteralExpression,
+    )
     expect(evaluator.evaluateNode(node)).toStrictEqual(['co', 'ral'])
   })
 
@@ -295,13 +373,18 @@ describe('Evaluator', async () => {
     const value = `
       const color = true ? 'coral' : 'lime';
     `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.ConditionalExpression)
+    const [evaluator, node] = getFirstNode(
+      value,
+      SyntaxKind.ConditionalExpression,
+    )
     expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
   })
 
   describe('CallExpression', () => {
     const getNode = (value: string) => {
-      const file = project.createSourceFile('virtual.ts', value, {overwrite: true})
+      const file = project.createSourceFile('virtual.ts', value, {
+        overwrite: true,
+      })
       const nodes = file.getDescendants()
       let targetNode: Node
       let count = 0
@@ -313,7 +396,7 @@ describe('Evaluator', async () => {
       const evaluator = new Evaluator({
         extra: {},
         definition: { ts, cssFunctionName: '' },
-        theme: null
+        theme: null,
       })
       return [evaluator, targetNode!] as const
     }

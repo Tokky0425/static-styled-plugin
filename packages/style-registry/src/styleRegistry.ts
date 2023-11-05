@@ -8,7 +8,7 @@ class StyleRegistry {
   constructor() {
     this.ruleMap = {} // this can be just an array, but leave it as it is for the convenience of the future
   }
-  addRule(classNameHash: string, cssString: string,) {
+  addRule(classNameHash: string, cssString: string) {
     this.ruleMap[classNameHash] = cssString
   }
 
@@ -32,4 +32,3 @@ class StyleRegistry {
 }
 
 export const styleRegistry = new StyleRegistry()
-

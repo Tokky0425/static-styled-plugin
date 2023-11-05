@@ -19,17 +19,30 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
   if (!fs.existsSync(themeFilePath)) return themeResult
 
   const fileBuffer = fs.readFileSync(themeFilePath)
-  const file = project.createSourceFile(themeFilePath, fileBuffer.toString(), { overwrite: true })
+  const file = project.createSourceFile(themeFilePath, fileBuffer.toString(), {
+    overwrite: true,
+  })
   const variableDeclarations = file.getVariableDeclarations()
 
   for (const variableDeclaration of variableDeclarations) {
     if (themeResult) continue
     if (variableDeclaration.getName() === 'theme') {
       const initializer = variableDeclaration.getInitializer()
-      const evaluator = new Evaluator({ extra: {}, definition: { cssFunctionName: null }, theme: null })
+      const evaluator = new Evaluator({
+        extra: {},
+        definition: { cssFunctionName: null },
+        theme: null,
+      })
       const result = initializer ? evaluator.evaluateNode(initializer) : null
 
-      if (result === TsEvalError || typeof result === 'string' || typeof result === 'number' || result === null || Array.isArray(result)) return null
+      if (
+        result === TsEvalError ||
+        typeof result === 'string' ||
+        typeof result === 'number' ||
+        result === null ||
+        Array.isArray(result)
+      )
+        return null
       themeResult = result
     }
   }

@@ -6,7 +6,10 @@ export function getStyledFunctionName(file: SourceFile): string | null {
 
   for (const importDeclaration of importDeclarations) {
     if (styledFunctionName) continue
-    if (importDeclaration.getModuleSpecifier().getLiteralText() === 'styled-components') {
+    if (
+      importDeclaration.getModuleSpecifier().getLiteralText() ===
+      'styled-components'
+    ) {
       const importClause = importDeclaration.getImportClause()
       styledFunctionName = importClause?.getDefaultImport()?.getText() ?? null
     }
