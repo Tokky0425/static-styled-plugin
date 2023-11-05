@@ -15,10 +15,10 @@
     "@static-styled-plugin/style-registry": "workspace:^",
     "stylis": "4.3.0",
     "ts-evaluator": "^1.2.0",
-    "ts-morph": "19.0.0"
+    "ts-morph": "20.0.0"
   },
   "devDependencies": {
-    "@types/stylis": "4.2.0",
-    "vitest": "0.34.2"
+    "@types/stylis": "4.2.2",
+    "vitest": "0.34.6"
   }
 }
