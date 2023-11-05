@@ -1,6 +1,6 @@
 {
-  "name": "2307_static-styled-plugin",
-  "version": "1.0.0",
+  "name": "static-styled-plugin",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
