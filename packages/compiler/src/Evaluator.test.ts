@@ -165,7 +165,7 @@ describe('Evaluator', async () => {
     const value = `
       const a = 'co';
       const b = 'ral';
-      const mainColor = \`\$\{a + b\}\`;
+      const mainColor = \`\${a + b}\`;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.TemplateExpression)
     expect(evaluator.evaluateNode(node)).toBe('coral')

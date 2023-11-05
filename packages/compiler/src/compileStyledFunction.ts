@@ -41,9 +41,10 @@ export function compileStyledFunction(file: SourceFile, styledFunctionName: stri
           return `...attrs${index}(props)`
         case 'ObjectLiteralExpression':
           return `...attrs${index}`
-        default:
+        default: {
           const neverValue: never = attrs.nodeKindName
           throw new Error(`${neverValue}`)
+        }
 
       }
     }).join(', ')

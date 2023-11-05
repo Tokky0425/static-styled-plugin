@@ -1,4 +1,4 @@
-import { Node, SourceFile } from 'ts-morph'
+import { SourceFile } from 'ts-morph'
 
 export function getStyledFunctionName(file: SourceFile): string | null {
   const importDeclarations = file.getImportDeclarations()

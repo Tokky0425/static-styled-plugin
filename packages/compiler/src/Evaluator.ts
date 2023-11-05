@@ -4,7 +4,7 @@ import * as TS from 'typescript'
 import { Theme } from './types'
 import {
   ArrayLiteralExpression,
-  ArrowFunction, AsExpression,
+  ArrowFunction,
   BinaryExpression,
   BindingElement,
   BindingName,
@@ -25,7 +25,7 @@ type EvaluateExtra = IEnvironment['extra']
 type ErrorType = typeof TsEvalError
 type PrimitiveType = string | number
 type ObjectType = { [key: string]: (PrimitiveType | ObjectType) }
-type ArrayType = Array<any>
+type ArrayType = Array<unknown>
 type Definition = {
   ts?: typeof TS
   cssFunctionName: string | null
@@ -468,12 +468,12 @@ export class Evaluator {
     return extra
   }
 
-  private buildExtraFromArgsAndParams(args: any[], params: Array<{ name: string, defaultValue: any }>) {
-    const result: { [key: string]: any } = {}
+  private buildExtraFromArgsAndParams(args: unknown[], params: Array<{ name: string, defaultValue: unknown }>) {
+    const result: { [key: string]: unknown } = {}
     params.forEach((param, index) => {
       result[param.name] = args[index] === undefined ? param.defaultValue : args[index]
     })
-    return result
+    return result as EvaluateExtra
   }
 
   private recursivelyCheckIsAsConst(node: Node): boolean {
