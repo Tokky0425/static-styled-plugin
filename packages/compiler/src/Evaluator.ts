@@ -28,7 +28,7 @@ type ObjectType = { [key: string]: PrimitiveType | ObjectType }
 type ArrayType = Array<unknown>
 type Definition = {
   ts?: typeof TS
-  cssFunctionName: string | null
+  cssFunctionName?: string | null
 }
 
 export const TsEvalError = Symbol('EvalError')
@@ -392,7 +392,7 @@ export class Evaluator {
           defaultValueNode &&
           new Evaluator({
             extra: {},
-            definition: { ts: this.definition.ts, cssFunctionName: null },
+            definition: { ts: this.definition.ts },
             theme: null,
           }).evaluateNode(defaultValueNode),
       }
@@ -404,7 +404,7 @@ export class Evaluator {
     )
     const functionEvaluator = new Evaluator({
       extra: extraForEvaluateFunction,
-      definition: { ts: this.definition.ts, cssFunctionName: null },
+      definition: { ts: this.definition.ts },
       theme: null,
     })
     return functionEvaluator.evaluateNode(targetNode)
