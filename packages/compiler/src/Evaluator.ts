@@ -231,7 +231,7 @@ export class Evaluator {
       if (!this.recursivelyCheckIsAsConst(initializer)) return TsEvalError
     } else {
       // otherwise, it is required to be declared with `const` to be parsed
-      if (!this.recursivelyCheckIsDeclaredByConst(initializer))
+      if (!this.recursivelyCheckIsDeclaredWithConst(initializer))
         return TsEvalError
     }
     return this.evaluateNode(initializer)
@@ -370,7 +370,7 @@ export class Evaluator {
       /*
        * e.g. const joinStr = (a: string, b: string) => a + b
        **/
-      if (!this.recursivelyCheckIsDeclaredByConst(definitionNode))
+      if (!this.recursivelyCheckIsDeclaredWithConst(definitionNode))
         return TsEvalError
       const initializerNode = definitionNode.getInitializer()
       if (!Node.isArrowFunction(initializerNode)) return TsEvalError
@@ -558,13 +558,13 @@ export class Evaluator {
     }
   }
 
-  private recursivelyCheckIsDeclaredByConst(node: Node): boolean {
+  private recursivelyCheckIsDeclaredWithConst(node: Node): boolean {
     const parent = node.getParent()
     if (!parent) return false
     if (Node.isVariableDeclarationList(parent)) {
       return parent.getText().startsWith('const')
     } else {
-      return this.recursivelyCheckIsDeclaredByConst(parent)
+      return this.recursivelyCheckIsDeclaredWithConst(parent)
     }
   }
 }
