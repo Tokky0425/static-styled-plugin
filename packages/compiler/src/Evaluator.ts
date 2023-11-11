@@ -36,12 +36,12 @@ export const TsEvalError = Symbol('EvalError')
 export class Evaluator {
   extra: EvaluateExtra
   definition: Definition
-  theme: Theme | null
+  theme?: Theme | null
 
   constructor(props: {
     extra: EvaluateExtra
     definition: Definition
-    theme: Theme | null
+    theme?: Theme | null
   }) {
     this.extra = props.extra
     this.definition = props.definition
@@ -393,7 +393,6 @@ export class Evaluator {
           new Evaluator({
             extra: {},
             definition: { ts: this.definition.ts },
-            theme: null,
           }).evaluateNode(defaultValueNode),
       }
     })
@@ -408,7 +407,6 @@ export class Evaluator {
     const functionEvaluator = new Evaluator({
       extra: extraForEvaluateFunction,
       definition: { ts: this.definition.ts },
-      theme: null,
     })
     return functionEvaluator.evaluateNode(targetNode)
   }

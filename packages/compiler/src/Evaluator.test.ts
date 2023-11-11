@@ -396,7 +396,6 @@ describe('Evaluator', async () => {
       const evaluator = new Evaluator({
         extra: {},
         definition: { ts },
-        theme: null,
       })
       return [evaluator, targetNode!] as const
     }
