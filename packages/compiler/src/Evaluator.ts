@@ -402,6 +402,9 @@ export class Evaluator {
       argumentNodesMeta,
       paramsMeta,
     )
+    // TODO: when this function is declared inside a function, it might need to take over `this.extra` doing like `extra: { ...this.extra, ...extraForEvaluateFunction }`
+    //  this can happen in the following situation
+    //  `const joinFunc = (arg1: string) => { const anotherJoinFunc = (arg2: string) => arg1 + arg2; return anotherJoinFunc('foo'); }`
     const functionEvaluator = new Evaluator({
       extra: extraForEvaluateFunction,
       definition: { ts: this.definition.ts },
