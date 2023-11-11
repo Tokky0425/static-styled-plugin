@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
+    "build": "pnpm --parallel --filter \"./packages/**\" build",
     "test": "pnpm --parallel --filter \"./packages/**\" test",
     "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint 'packages/**/src/*.ts'",
