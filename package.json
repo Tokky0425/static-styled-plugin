@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
     "build": "turbo run build",
-    "build:packages": "turbo run build --filter @static-styled/*",
+    "build:packages": "turbo run build --filter @static-styled-plugin/*",
     "test": "pnpm --parallel --filter \"./packages/**\" test",
     "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint 'packages/**/src/*.ts'",
