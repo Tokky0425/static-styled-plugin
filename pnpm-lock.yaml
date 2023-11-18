@@ -30,11 +30,14 @@ importers:
       prettier:
         specifier: ^3.0.3
         version: 3.0.3
+      turbo:
+        specifier: 1.10.16
+        version: 1.10.16
 
   example/next:
     dependencies:
       '@static-styled-plugin/next-plugin':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/next-plugin
       '@types/node':
         specifier: 20.6.0
@@ -70,7 +73,7 @@ importers:
   example/vite:
     dependencies:
       '@static-styled-plugin/vite-plugin':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/vite-plugin
       react:
         specifier: ^18.2.0
@@ -129,7 +132,7 @@ importers:
         specifier: 7.22.9
         version: 7.22.9
       '@static-styled-plugin/webpack-plugin':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/webpack-plugin
       '@types/react':
         specifier: ^18.2.15
@@ -165,7 +168,7 @@ importers:
   packages/compiler:
     dependencies:
       '@static-styled-plugin/style-registry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../style-registry
       stylis:
         specifier: 4.3.0
@@ -187,7 +190,7 @@ importers:
   packages/next-plugin:
     dependencies:
       '@static-styled-plugin/webpack-plugin':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../webpack-plugin
       next:
         specifier: '>=13.4'
@@ -202,10 +205,10 @@ importers:
   packages/vite-plugin:
     dependencies:
       '@static-styled-plugin/compiler':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../compiler
       '@static-styled-plugin/style-registry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../style-registry
     devDependencies:
       vite:
@@ -215,10 +218,10 @@ importers:
   packages/webpack-plugin:
     dependencies:
       '@static-styled-plugin/compiler':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../compiler
       '@static-styled-plugin/style-registry':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../style-registry
       fs-extra:
         specifier: ^11.1.1
@@ -7078,6 +7081,66 @@ packages:
 
   /tslib@2.6.0:
     resolution: {integrity: sha512-7At1WUettjcSRHXCyYtTselblcHl9PJFFVKiCAy/bY97+BPZXSQ2wbq0P9s8tK2G7dFQfNnlJnPAiArVBVBsfA==}
+
+  /turbo-darwin-64@1.10.16:
+    resolution: {integrity: sha512-+Jk91FNcp9e9NCLYlvDDlp2HwEDp14F9N42IoW3dmHI5ZkGSXzalbhVcrx3DOox3QfiNUHxzWg4d7CnVNCuuMg==}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo-darwin-arm64@1.10.16:
+    resolution: {integrity: sha512-jqGpFZipIivkRp/i+jnL8npX0VssE6IAVNKtu573LXtssZdV/S+fRGYA16tI46xJGxSAivrZ/IcgZrV6Jk80bw==}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo-linux-64@1.10.16:
+    resolution: {integrity: sha512-PpqEZHwLoizQ6sTUvmImcRmACyRk9EWLXGlqceogPZsJ1jTRK3sfcF9fC2W56zkSIzuLEP07k5kl+ZxJd8JMcg==}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo-linux-arm64@1.10.16:
+    resolution: {integrity: sha512-TMjFYz8to1QE0fKVXCIvG/4giyfnmqcQIwjdNfJvKjBxn22PpbjeuFuQ5kNXshUTRaTJihFbuuCcb5OYFNx4uw==}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo-windows-64@1.10.16:
+    resolution: {integrity: sha512-+jsf68krs0N66FfC4/zZvioUap/Tq3sPFumnMV+EBo8jFdqs4yehd6+MxIwYTjSQLIcpH8KoNMB0gQYhJRLZzw==}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo-windows-arm64@1.10.16:
+    resolution: {integrity: sha512-sKm3hcMM1bl0B3PLG4ifidicOGfoJmOEacM5JtgBkYM48ncMHjkHfFY7HrJHZHUnXM4l05RQTpLFoOl/uIo2HQ==}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /turbo@1.10.16:
+    resolution: {integrity: sha512-2CEaK4FIuSZiP83iFa9GqMTQhroW2QryckVqUydmg4tx78baftTOS0O+oDAhvo9r9Nit4xUEtC1RAHoqs6ZEtg==}
+    hasBin: true
+    optionalDependencies:
+      turbo-darwin-64: 1.10.16
+      turbo-darwin-arm64: 1.10.16
+      turbo-linux-64: 1.10.16
+      turbo-linux-arm64: 1.10.16
+      turbo-windows-64: 1.10.16
+      turbo-windows-arm64: 1.10.16
+    dev: true
 
   /type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}

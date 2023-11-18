@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
-    "build": "pnpm style-registry build & pnpm compiler build & pnpm --parallel --filter \"./packages/(next-plugin|vite-plugin|webpack-plugin)\" build",
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter @static-styled/*",
     "test": "pnpm --parallel --filter \"./packages/**\" test",
     "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint 'packages/**/src/*.ts'",
@@ -36,6 +37,7 @@
     "@typescript-eslint/parser": "^6.9.1",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^9.0.0",
-    "prettier": "^3.0.3"
+    "prettier": "^3.0.3",
+    "turbo": "1.10.16"
   }
 }
