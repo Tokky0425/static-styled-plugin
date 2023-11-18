@@ -10,6 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "files": ["dist"],
   "dependencies": {
     "@static-styled-plugin/webpack-plugin": "workspace:*"
   },

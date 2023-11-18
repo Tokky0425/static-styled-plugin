@@ -11,6 +11,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "files": ["dist"],
   "dependencies": {
     "@static-styled-plugin/style-registry": "workspace:*",
     "stylis": "4.3.0",

@@ -10,6 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "files": ["dist"],
   "dependencies": {
     "@static-styled-plugin/compiler": "workspace:*",
     "@static-styled-plugin/style-registry": "workspace:*",
