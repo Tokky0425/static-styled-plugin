@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@static-styled-plugin/webpack-plugin": "workspace:^"
+    "@static-styled-plugin/webpack-plugin": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=13.4"

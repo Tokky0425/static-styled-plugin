@@ -11,8 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@static-styled-plugin/compiler": "workspace:^",
-    "@static-styled-plugin/style-registry": "workspace:^"
+    "@static-styled-plugin/compiler": "workspace:*",
+    "@static-styled-plugin/style-registry": "workspace:*"
   },
   "devDependencies": {
     "vite": "4.5.0"

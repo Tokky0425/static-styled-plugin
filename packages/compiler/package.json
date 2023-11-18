@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@static-styled-plugin/style-registry": "workspace:^",
+    "@static-styled-plugin/style-registry": "workspace:*",
     "stylis": "4.3.0",
     "ts-evaluator": "^1.2.0",
     "ts-morph": "20.0.0"

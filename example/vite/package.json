@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@static-styled-plugin/vite-plugin": "workspace:^",
+    "@static-styled-plugin/vite-plugin": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "styled-components": "6.0.5"
