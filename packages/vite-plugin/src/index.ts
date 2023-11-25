@@ -28,16 +28,21 @@ export function staticStyledPlugin(options?: Options): Plugin {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
 
-      const { code, useClientExpressionExtracted, shouldUseClient } = compile(
-        sourceCode,
-        id,
-        theme,
-      )
+      const {
+        code,
+        useClientExpressionExtracted,
+        hasReactImportStatement,
+        shouldUseClient,
+      } = compile(sourceCode, id, theme)
       const useClientExpression =
-        useClientExpressionExtracted || shouldUseClient ? "'use client';\n" : ''
+        useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
       const cssString = styleRegistry.getRule()
       if (!cssString) return useClientExpression + code
       styleRegistry.reset()
+
+      const reactImportStatement = hasReactImportStatement
+        ? ''
+        : 'import React from "react";\n'
 
       if (command === 'serve') {
         // Manually injecting style tag by injectDevelopmentCSS
@@ -48,6 +53,7 @@ export function staticStyledPlugin(options?: Options): Plugin {
         )
         return (
           useClientExpression +
+          reactImportStatement +
           injectDevelopmentCSS(cssString, cssRelativeFilePath) +
           code
         )
@@ -60,6 +66,7 @@ export function staticStyledPlugin(options?: Options): Plugin {
       cssMap[cssMapKey] = cssString
       return (
         useClientExpression +
+        reactImportStatement +
         `import "${virtualModuleId + cssAbsolutePath}";\n` +
         code
       )

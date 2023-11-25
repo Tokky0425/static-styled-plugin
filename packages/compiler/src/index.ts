@@ -5,6 +5,7 @@ export { parseTheme } from './parseTheme'
 import { extractUseClientExpression } from './extractUseClientExpression'
 import { getStyledFunctionName } from './getStyledFunctionName'
 import { getCssFunctionName } from './getCssFunctionName'
+import { checkHasReactImportStatement } from './checkHasReactImportStatement'
 export type { Theme } from './types'
 
 const project = new Project()
@@ -16,6 +17,7 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
 
   const cssFunctionName = getCssFunctionName(file)
   const useClientExpressionExtracted = extractUseClientExpression(file)
+  const hasReactImportStatement = checkHasReactImportStatement(file)
   const shouldUseClient = compileStyledFunction(
     file,
     styledFunctionName,
@@ -25,6 +27,7 @@ export function compile(code: string, filePath: string, theme: Theme | null) {
   return {
     code: file.getFullText(),
     useClientExpressionExtracted,
+    hasReactImportStatement,
     shouldUseClient,
   }
 }

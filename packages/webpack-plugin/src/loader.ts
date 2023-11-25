@@ -17,13 +17,15 @@ const loader: LoaderDefinitionFunction<{
 
   const callback = this.callback
   const resourcePath = this.resourcePath
-  const { code, useClientExpressionExtracted, shouldUseClient } = compile(
-    sourceCode,
-    resourcePath,
-    theme,
-  )
+  const {
+    code,
+    useClientExpressionExtracted,
+    hasReactImportStatement,
+    shouldUseClient,
+  } = compile(sourceCode, resourcePath, theme)
+
   const useClientExpression =
-    useClientExpressionExtracted || shouldUseClient ? "'use client';\n" : ''
+    useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
 
   const cssString = styleRegistry.getRule()
   if (!cssString) {
@@ -38,12 +40,19 @@ const loader: LoaderDefinitionFunction<{
     return
   }
 
+  const reactImportStatement = hasReactImportStatement
+    ? ''
+    : 'import React from "react";\n'
+
   if (cssOutputDir) {
     const fileHash = createHash('md5').update(cssString).digest('hex')
     const cssFilePath = path.join(cssOutputDir, `${fileHash}.css`)
     outputFileSync(cssFilePath, cssString)
     const importCSSIdentifier = `import "${cssFilePath}"\n`
-    callback(null, useClientExpression + importCSSIdentifier + code)
+    callback(
+      null,
+      useClientExpression + reactImportStatement + importCSSIdentifier + code,
+    )
   } else {
     const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
       sourceCode: cssString,
@@ -54,7 +63,10 @@ const loader: LoaderDefinitionFunction<{
         `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`,
       ),
     )};\n`
-    callback(null, useClientExpression + importCSSIdentifier + code)
+    callback(
+      null,
+      useClientExpression + reactImportStatement + importCSSIdentifier + code,
+    )
   }
 }
 
