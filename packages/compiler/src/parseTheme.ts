@@ -27,48 +27,46 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
 
 export function getThemeValue(file: SourceFile, ts?: typeof TS) {
   let themeResult: null | Theme = null
-
   const variableDeclarations = file.getVariableDeclarations()
 
   for (const variableDeclaration of variableDeclarations) {
-    if (variableDeclaration.getName() === 'theme') {
-      const descendants = variableDeclaration.getDescendants()
+    if (variableDeclaration.getName() !== 'theme') continue
+    const descendants = variableDeclaration.getDescendants()
 
-      /**
-       * theme must be declared with const assertion (`as const`)
-       */
-      let asConstFound = false
-      for (const descendant of descendants) {
-        if (Node.isAsExpression(descendant)) {
-          asConstFound = true
-          break
-        }
-      }
-      if (!asConstFound) break
-
-      const initializer = variableDeclaration.getInitializer()
-      const evaluator = new Evaluator({
-        extra: {},
-        definition: {
-          cssFunctionName: null,
-          ts,
-        },
-        theme: null,
-      })
-      const result = initializer ? evaluator.evaluateNode(initializer) : null
-
-      if (
-        result === TsEvalError ||
-        typeof result === 'string' ||
-        typeof result === 'number' ||
-        result === null ||
-        Array.isArray(result)
-      ) {
+    /**
+     * theme must be declared with const assertion (`as const`)
+     */
+    let asConstFound = false
+    for (const descendant of descendants) {
+      if (Node.isAsExpression(descendant)) {
+        asConstFound = true
         break
       }
-      themeResult = result
+    }
+    if (!asConstFound) break
+
+    const initializer = variableDeclaration.getInitializer()
+    const evaluator = new Evaluator({
+      extra: {},
+      definition: {
+        cssFunctionName: null,
+        ts,
+      },
+      theme: null,
+    })
+    const result = initializer ? evaluator.evaluateNode(initializer) : null
+
+    if (
+      result === TsEvalError ||
+      typeof result === 'string' ||
+      typeof result === 'number' ||
+      result === null ||
+      Array.isArray(result)
+    ) {
       break
     }
+    themeResult = result
+    break
   }
 
   return themeResult
