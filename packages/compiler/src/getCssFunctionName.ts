@@ -5,7 +5,7 @@ export function getCssFunctionName(file: SourceFile): string | null {
   let cssFunctionName: string | null = null
 
   for (const importDeclaration of importDeclarations) {
-    if (cssFunctionName) continue
+    if (cssFunctionName) break
     if (
       importDeclaration.getModuleSpecifier().getLiteralText() !==
       'styled-components'
@@ -14,7 +14,7 @@ export function getCssFunctionName(file: SourceFile): string | null {
 
     const importClause = importDeclaration.getImportClause()
     const namedImports = importClause?.getNamedImports()
-    if (!namedImports) continue
+    if (!namedImports) break
 
     for (const namedImport of namedImports) {
       const nameIdentifier = namedImport.compilerNode.name
@@ -25,9 +25,11 @@ export function getCssFunctionName(file: SourceFile): string | null {
       if (!propertyNameIdentifierText && nameIdentifierText === 'css') {
         // e.g. import { css } from 'styled-components'
         cssFunctionName = nameIdentifierText
+        break
       } else if (propertyNameIdentifierText === 'css' && nameIdentifierText) {
         // e.g. import { css as something } from 'styled-components'
         cssFunctionName = nameIdentifierText
+        break
       }
     }
   }
