@@ -1,8 +1,9 @@
-import { Project } from 'ts-morph'
+import { Node, Project, SourceFile } from 'ts-morph'
 import path from 'path'
 import fs from 'fs'
 import type { Theme } from './types'
 import { Evaluator, TsEvalError } from './Evaluator'
+import * as TS from 'typescript'
 
 const project = new Project()
 
@@ -14,23 +15,44 @@ const project = new Project()
  * - it does not depend on values from node_modules
  */
 export function parseTheme(themeFileRelativePath: string): null | Theme {
-  let themeResult: null | Theme = null
   const themeFilePath = path.join(process.cwd(), themeFileRelativePath)
-  if (!fs.existsSync(themeFilePath)) return themeResult
+  if (!fs.existsSync(themeFilePath)) return null
 
   const fileBuffer = fs.readFileSync(themeFilePath)
   const file = project.createSourceFile(themeFilePath, fileBuffer.toString(), {
     overwrite: true,
   })
+  return getThemeValue(file)
+}
+
+export function getThemeValue(file: SourceFile, ts?: typeof TS) {
+  let themeResult: null | Theme = null
+
   const variableDeclarations = file.getVariableDeclarations()
 
   for (const variableDeclaration of variableDeclarations) {
-    if (themeResult) continue
     if (variableDeclaration.getName() === 'theme') {
+      const descendants = variableDeclaration.getDescendants()
+
+      /**
+       * theme must be declared with const assertion (`as const`)
+       */
+      let asConstFound = false
+      for (const descendant of descendants) {
+        if (Node.isAsExpression(descendant)) {
+          asConstFound = true
+          break
+        }
+      }
+      if (!asConstFound) break
+
       const initializer = variableDeclaration.getInitializer()
       const evaluator = new Evaluator({
         extra: {},
-        definition: { cssFunctionName: null },
+        definition: {
+          cssFunctionName: null,
+          ts,
+        },
         theme: null,
       })
       const result = initializer ? evaluator.evaluateNode(initializer) : null
@@ -41,9 +63,11 @@ export function parseTheme(themeFileRelativePath: string): null | Theme {
         typeof result === 'number' ||
         result === null ||
         Array.isArray(result)
-      )
-        return null
+      ) {
+        break
+      }
       themeResult = result
+      break
     }
   }
 
