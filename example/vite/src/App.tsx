@@ -1,11 +1,13 @@
 import styled, { ThemeProvider } from 'styled-components'
 import { theme } from './theme'
+import { BoldText } from './BoldText'
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <StaticStyleText>static style text</StaticStyleText>
       <DynamicStyleText>dynamic style text</DynamicStyleText>
+      <BoldText>bold text</BoldText>
     </ThemeProvider>
   )
 }
