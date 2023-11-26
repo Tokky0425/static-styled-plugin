@@ -15,7 +15,6 @@
     "format:eslint": "eslint --fix 'packages/**/src/*.ts'",
     "format:prettier": "prettier --write 'packages/**/src/*.ts'",
     "compiler": "pnpm -F \"compiler\"",
-    "style-registry": "pnpm -F \"style-registry\"",
     "vite-plugin": "pnpm -F \"vite-plugin\"",
     "webpack-plugin": "pnpm -F \"webpack-plugin\"",
     "next-plugin": "pnpm -F \"next-plugin\""

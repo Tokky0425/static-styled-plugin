@@ -167,9 +167,6 @@ importers:
 
   packages/compiler:
     dependencies:
-      '@static-styled-plugin/style-registry':
-        specifier: workspace:*
-        version: link:../style-registry
       stylis:
         specifier: 4.3.0
         version: 4.3.0
@@ -200,16 +197,11 @@ importers:
         specifier: 5.89.0
         version: 5.89.0
 
-  packages/style-registry: {}
-
   packages/vite-plugin:
     dependencies:
       '@static-styled-plugin/compiler':
         specifier: workspace:*
         version: link:../compiler
-      '@static-styled-plugin/style-registry':
-        specifier: workspace:*
-        version: link:../style-registry
     devDependencies:
       vite:
         specifier: 4.5.0
@@ -220,9 +212,6 @@ importers:
       '@static-styled-plugin/compiler':
         specifier: workspace:*
         version: link:../compiler
-      '@static-styled-plugin/style-registry':
-        specifier: workspace:*
-        version: link:../style-registry
       fs-extra:
         specifier: ^11.1.1
         version: 11.1.1

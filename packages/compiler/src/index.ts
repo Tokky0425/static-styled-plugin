@@ -1,12 +1,13 @@
 import { compileStyledFunction } from './compileStyledFunction'
 import { Theme } from './types'
 import { Project } from 'ts-morph'
-export { parseTheme } from './parseTheme'
 import { extractUseClientExpression } from './extractUseClientExpression'
 import { getStyledFunctionName } from './getStyledFunctionName'
 import { getCssFunctionName } from './getCssFunctionName'
 import { checkHasReactImportStatement } from './checkHasReactImportStatement'
 export type { Theme } from './types'
+export { parseTheme } from './parseTheme'
+export { styleRegistry } from './styleRegistry'
 
 const project = new Project()
 

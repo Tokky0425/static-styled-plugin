@@ -2,8 +2,7 @@ import type { LoaderDefinitionFunction } from 'webpack'
 import { outputFileSync } from 'fs-extra'
 import { createHash } from 'crypto'
 import path from 'path'
-import { Theme, compile } from '@static-styled-plugin/compiler'
-import { styleRegistry } from '@static-styled-plugin/style-registry'
+import { Theme, compile, styleRegistry } from '@static-styled-plugin/compiler'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve('../assets/injectedStyle.css')

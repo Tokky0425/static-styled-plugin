@@ -1,5 +1,5 @@
-import { styleRegistry } from '@static-styled-plugin/style-registry'
 import { Node, SourceFile } from 'ts-morph'
+import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 import { compileCssString } from './compileCssString'

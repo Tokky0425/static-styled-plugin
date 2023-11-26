@@ -13,7 +13,6 @@
   "files": ["dist", "assets"],
   "dependencies": {
     "@static-styled-plugin/compiler": "workspace:*",
-    "@static-styled-plugin/style-registry": "workspace:*",
     "fs-extra": "^11.1.1"
   },
   "devDependencies": {
