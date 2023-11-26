@@ -2,6 +2,7 @@
   "name": "static-styled-plugin",
   "version": "0.1.0",
   "description": "",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
