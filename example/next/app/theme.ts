@@ -4,4 +4,4 @@ export const theme = {
     m: '1rem',
     l: '1.25rem',
   },
-}
+} as const
