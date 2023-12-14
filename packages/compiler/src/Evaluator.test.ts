@@ -187,6 +187,15 @@ describe('Evaluator', async () => {
       const [evaluator, node] = getTargetNode(value, 4)
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
+
+    test('object destructuring', () => {
+      const value = `
+        const theme = { color: { main: 'coral' } } as const;
+        const { color: { main } } = theme
+      `
+      const [evaluator, node] = getTargetNode(value, 6) // main
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
   })
 
   test('BinaryExpression', () => {

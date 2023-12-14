@@ -195,15 +195,24 @@ export class Evaluator {
 
   evaluateIdentifier(node: Identifier) {
     let value: unknown
-    const referencesAsNode = node.findReferencesAsNodes()
+    const definitionNodes = node.getDefinitions()
 
-    for (const node of referencesAsNode) {
-      const nodeParent = node.getParentOrThrow()
-      if (!Node.isVariableDeclaration(nodeParent)) continue
-      const propertyInitializerValue = this.evaluateNode(nodeParent)
-      if (propertyInitializerValue === TsEvalError) return TsEvalError
-      value = propertyInitializerValue
-      break
+    for (const definitionNode of definitionNodes) {
+      const nodeParent = definitionNode.getNode().getParent()
+      if (Node.isPropertyAssignment(nodeParent)) {
+        if (!this.recursivelyCheckIsAsConst(nodeParent)) break
+        const propertyInitializer = nodeParent.getInitializer()
+        if (!propertyInitializer) continue
+        const propertyInitializerValue = this.evaluateNode(propertyInitializer)
+        if (propertyInitializerValue === TsEvalError) return TsEvalError
+        value = propertyInitializerValue
+        break
+      } else if (Node.isVariableDeclaration(nodeParent)) {
+        const propertyInitializerValue = this.evaluateNode(nodeParent)
+        if (propertyInitializerValue === TsEvalError) return TsEvalError
+        value = propertyInitializerValue
+        break
+      }
     }
 
     if (!value) {
