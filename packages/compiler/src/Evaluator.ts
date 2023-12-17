@@ -196,22 +196,44 @@ export class Evaluator {
   evaluateIdentifier(node: Identifier) {
     let value: unknown
     const definitionNodes = node.getDefinitions()
+    const definition = definitionNodes[0]
+    if (definitionNodes.length !== 1 || !definition) return TsEvalError
+    const definitionNode = definition.getNode()
+    const definitionNodeParent = definitionNode.getParent()
 
-    for (const definitionNode of definitionNodes) {
-      const nodeParent = definitionNode.getNode().getParent()
-      if (Node.isPropertyAssignment(nodeParent)) {
+    // TODO do `new Evaluator().evaluateNode` depending on the definitionNode's scope
+    //  might fix with same issues in other places.
+    if (Node.isPropertyAssignment(definitionNodeParent)) {
+      // when the identifier is initialized by object property assignment
+      if (!this.recursivelyCheckIsAsConst(definitionNodeParent))
+        return TsEvalError
+      const propertyInitializer = definitionNodeParent.getInitializer()
+      if (!propertyInitializer) return TsEvalError
+      const propertyInitializerValue = this.evaluateNode(propertyInitializer)
+      if (propertyInitializerValue === TsEvalError) return TsEvalError
+      value = propertyInitializerValue
+    } else if (Node.isVariableDeclaration(definitionNodeParent)) {
+      // when the identifier is initialized by variable declaration
+      const propertyInitializerValue = this.evaluateNode(definitionNodeParent)
+      if (propertyInitializerValue === TsEvalError) return TsEvalError
+      value = propertyInitializerValue
+    } else if (Node.isBindingElement(definitionNodeParent)) {
+      // when the identifier is initialized by object destructuring
+      const referencesAsNode = definitionNodeParent.findReferencesAsNodes()
+      for (const node of referencesAsNode) {
+        const nodeParent = node.getParentOrThrow()
+        if (!Node.isPropertyAssignment(nodeParent)) continue
         if (!this.recursivelyCheckIsAsConst(nodeParent)) break
         const propertyInitializer = nodeParent.getInitializer()
         if (!propertyInitializer) continue
         const propertyInitializerValue = this.evaluateNode(propertyInitializer)
-        if (propertyInitializerValue === TsEvalError) return TsEvalError
-        value = propertyInitializerValue
-        break
-      } else if (Node.isVariableDeclaration(nodeParent)) {
-        const propertyInitializerValue = this.evaluateNode(nodeParent)
-        if (propertyInitializerValue === TsEvalError) return TsEvalError
-        value = propertyInitializerValue
-        break
+        if (
+          typeof propertyInitializerValue === 'string' ||
+          typeof propertyInitializerValue === 'number'
+        ) {
+          value = propertyInitializerValue
+          break
+        }
       }
     }
 
@@ -223,6 +245,75 @@ export class Evaluator {
         typeof valueFromExtra === 'object'
       ) {
         value = valueFromExtra
+      }
+    }
+
+    // TODO add "only when in 'styled' function" condition
+    if (!value) {
+      // e.g. evaluating `m` for the pattern below
+      // const Text = styled.p`
+      //   font-size: ${(props) => {
+      //     const { theme: { fontSize: m } } = props
+      //     return m;
+      //   }};
+      // `
+
+      const arrowFunctionNodeClosestToDefinition = this.closestNode(
+        definitionNode,
+        'ArrowFunction',
+      )
+      const isNodeDeclaredInsideSameScopeArrowFunction =
+        !!arrowFunctionNodeClosestToDefinition &&
+        this.withinNode(node, arrowFunctionNodeClosestToDefinition)
+
+      if (isNodeDeclaredInsideSameScopeArrowFunction) {
+        const variableDeclarationNode = this.closestNode(
+          definitionNode,
+          'VariableDeclaration',
+        )
+
+        if (Node.isVariableDeclaration(variableDeclarationNode)) {
+          const variableDeclarationNodeInitializer =
+            variableDeclarationNode.getInitializer()
+          if (variableDeclarationNodeInitializer) {
+            let initializerText = '' // e.g. 'props'
+            if (
+              Node.isPropertyAccessExpression(
+                variableDeclarationNodeInitializer,
+              )
+            ) {
+              initializerText = this.getFirstNodeForPropertyAccessExpression(
+                variableDeclarationNodeInitializer,
+              ).getText()
+            } else {
+              initializerText = variableDeclarationNodeInitializer.getText()
+            }
+
+            if (this.extra[initializerText]) {
+              const name = variableDeclarationNode.getNameNode()
+              if (Node.isObjectBindingPattern(name)) {
+                const bindingElements = name.getElements()
+                if (this.theme) {
+                  // TODO: this cannot handle the case below
+                  //  `const { fontSize: { m } } = props.theme`
+                  //  because recursivelyBuildExtraBasedOnTheme assumes that object destructuring is done from the top level
+                  const newExtra = {
+                    ...this.recursivelyBuildExtraBasedOnTheme(bindingElements, {
+                      theme: this.theme,
+                    }),
+                    ...this.extra, // to prioritize descendant's args, ...extra should come at last
+                  }
+
+                  // do not give theme to avoid infinite loops that may occur
+                  value = new Evaluator({
+                    extra: newExtra,
+                    definition: { ts: this.definition.ts },
+                  }).evaluateNode(node)
+                }
+              }
+            }
+          }
+        }
       }
     }
 
@@ -449,6 +540,53 @@ export class Evaluator {
     return TsEvalError
   }
 
+  private closestNode(
+    node: Node,
+    targetNodeKindName: string,
+  ): Node | undefined {
+    const parent = node.getParent()
+    if (!parent) return undefined
+    if (parent.getKindName() === targetNodeKindName) return parent
+    return this.closestNode(parent, targetNodeKindName)
+  }
+
+  private withinNode(node: Node, targetNode: Node): boolean {
+    const parent = node.getParent()
+    if (!parent) return false
+    if (parent === targetNode) return true
+    return this.withinNode(parent, targetNode)
+  }
+
+  /**
+   * e.g. `theme.fontSize.m` -> `theme`
+   * @param node
+   * @private
+   */
+  private getFirstNodeForPropertyAccessExpression(
+    node: PropertyAccessExpression,
+  ): Identifier {
+    const expression = node.getExpression()
+    if (Node.isPropertyAccessExpression(expression)) {
+      return this.getFirstNodeForPropertyAccessExpression(expression)
+    }
+    return expression as Identifier
+  }
+
+  /**
+   * e.g. `theme.fontSize.m` -> `m`
+   * @param node
+   * @private
+   */
+  // private getLastNodeForPropertyAccessExpression(
+  //   node: PropertyAccessExpression,
+  // ): Identifier {
+  //   const expression = node.getParent()
+  //   if (Node.isPropertyAccessExpression(expression)) {
+  //     return this.getLastNodeForPropertyAccessExpression(expression)
+  //   }
+  //   return node.getNameNode()
+  // }
+
   private addAncestorThemeArgsToExtra(node: ArrowFunction) {
     const body = node.getBody()
 
@@ -560,6 +698,7 @@ export class Evaluator {
 
   private recursivelyCheckIsAsConst(node: Node): boolean {
     const parent = node.getParent()
+    console.log(parent?.getText())
     if (!parent) return false
     if (Node.isAsExpression(parent)) {
       return true
