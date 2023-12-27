@@ -250,6 +250,7 @@ export class Evaluator {
         const variableDeclarationNodeInitializer =
           variableDeclarationNode.getInitializer()
         if (variableDeclarationNodeInitializer) {
+          // console.log(variableDeclarationNodeInitializer.getText())
           let initializerText = '' // e.g. 'props'
           if (
             Node.isPropertyAccessExpression(variableDeclarationNodeInitializer)
@@ -324,11 +325,12 @@ export class Evaluator {
        * return main; // <- when evaluating `main` of this line
        */
       const referencesAsNode = definitionNodeParent.findReferencesAsNodes()
-      for (const node of referencesAsNode) {
-        const nodeParent = node.getParentOrThrow()
-        if (!Node.isPropertyAssignment(nodeParent)) continue
-        if (!this.recursivelyCheckIsAsConst(nodeParent)) break
-        const propertyInitializer = nodeParent.getInitializer()
+      for (const referencedNode of referencesAsNode) {
+        if (referencedNode === node) continue
+        const referencedNodeParent = referencedNode.getParent()
+        if (!Node.isPropertyAssignment(referencedNodeParent)) continue
+        if (!this.recursivelyCheckIsAsConst(referencedNodeParent)) break
+        const propertyInitializer = referencedNodeParent.getInitializer()
         if (!propertyInitializer) continue
         const propertyInitializerValue =
           isNodeDeclaredInsideSameScopeArrowFunction
