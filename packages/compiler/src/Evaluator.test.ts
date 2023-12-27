@@ -22,7 +22,7 @@ describe('Evaluator', async () => {
     )!
     const evaluator = new Evaluator({
       extra,
-      definition: { ts, cssFunctionName: 'css' },
+      definition: { ts, styledFunctionName: 'styled', cssFunctionName: 'css' },
       theme: withoutTheme ? null : theme,
     })
     return [evaluator, node]
@@ -48,7 +48,7 @@ describe('Evaluator', async () => {
 
     const evaluator = new Evaluator({
       extra,
-      definition: { ts, cssFunctionName: 'css' },
+      definition: { ts, styledFunctionName: 'styled', cssFunctionName: 'css' },
       theme: withoutTheme ? null : theme,
     })
     return [evaluator, node!]
@@ -201,6 +201,45 @@ describe('Evaluator', async () => {
       `
       const [evaluator, node] = getLastNodeByName(value, 'main')
       expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    describe('when the target is related to theme', () => {
+      test('object destructuring from `props`', () => {
+        const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { theme: { color: { main } } } = props;
+              return main;
+            }};
+          \`
+        `
+
+        // this extra is expected to be added before coming here
+        const extra = {
+          props: { theme },
+        }
+        const [evaluator, node] = getLastNodeByName(value, 'main', false, extra)
+        expect(evaluator.evaluateNode(node)).toBe('coral')
+      })
+
+      // TODO: fix code to pass this test
+      test('object destructuring from `props.theme`', () => {
+        const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { color: { main } } = props.theme;
+              return main;
+            }};
+          \`
+        `
+
+        // this extra is expected to be added before coming here
+        const extra = {
+          props: { theme },
+        }
+        const [evaluator, node] = getLastNodeByName(value, 'main', false, extra)
+        expect(evaluator.evaluateNode(node)).toBe('coral')
+      })
     })
   })
 
