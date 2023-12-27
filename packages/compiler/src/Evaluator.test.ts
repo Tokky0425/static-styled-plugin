@@ -157,7 +157,7 @@ describe('Evaluator', async () => {
         const color = 'coral';
         const mainColor = color;
       `
-      const [evaluator, node] = getTargetNode(value, 3)
+      const [evaluator, node] = getTargetNode(value, 3) // mainColor
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
@@ -166,8 +166,18 @@ describe('Evaluator', async () => {
         let color = 'coral';
         const mainColor = color;
       `
-      const [evaluator, node] = getTargetNode(value, 3)
+      const [evaluator, node] = getTargetNode(value, 3) // mainColor
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+    })
+
+    test('declared by object destructuring', () => {
+      const value = `
+        const color = { main: 'coral' } as const;
+        const { main } = color;
+        const mainColor = main;
+      `
+      const [evaluator, node] = getTargetNode(value, 6) // mainColor
+      expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
     test('object with `as const`', () => {
@@ -175,7 +185,7 @@ describe('Evaluator', async () => {
         const color = { main: 'coral' } as const;
         const mainColor = color;
       `
-      const [evaluator, node] = getTargetNode(value, 5)
+      const [evaluator, node] = getTargetNode(value, 5) // mainColor
       expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
     })
 
@@ -184,7 +194,7 @@ describe('Evaluator', async () => {
         const color = { main: 'coral' };
         const mainColor = color;
       `
-      const [evaluator, node] = getTargetNode(value, 4)
+      const [evaluator, node] = getTargetNode(value, 4) // mainColor
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
 
