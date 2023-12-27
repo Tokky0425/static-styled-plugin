@@ -30,7 +30,7 @@ export function compileStyledFunction(
 
     const evaluator = new Evaluator({
       extra: {},
-      definition: { cssFunctionName },
+      definition: { styledFunctionName, cssFunctionName },
       theme,
     })
     const result = evaluator.evaluateStyledTaggedTemplateExpression(node)

@@ -20,6 +20,7 @@ import {
   TemplateExpression,
   VariableDeclaration,
 } from 'ts-morph'
+import { parseTaggedTemplateExpression } from './compileStyledFunction'
 
 type EvaluateExtra = IEnvironment['extra']
 type ErrorType = typeof TsEvalError
@@ -28,6 +29,7 @@ type ObjectType = { [key: string]: PrimitiveType | ObjectType }
 type ArrayType = Array<unknown>
 type Definition = {
   ts?: typeof TS
+  styledFunctionName?: string | null
   cssFunctionName?: string | null
 }
 
@@ -208,8 +210,10 @@ export class Evaluator {
       theme: this.theme,
     })
 
-    if (isNodeDeclaredInsideSameScopeArrowFunction) {
-      // TODO add "only when in 'styled' function" condition
+    if (
+      isNodeDeclaredInsideSameScopeArrowFunction &&
+      this.isInStyledFunction(node)
+    ) {
       /**
        * try to evaluate using `extra` first
        */
@@ -272,7 +276,7 @@ export class Evaluator {
                 // do not give theme to avoid infinite loops that may occur
                 return new Evaluator({
                   extra: newExtra,
-                  definition: { ts: this.definition.ts },
+                  definition: { ...this.definition },
                 }).evaluateNode(node)
               }
             }
@@ -611,6 +615,21 @@ export class Evaluator {
       !!arrowFunctionNodeClosestToDefinition &&
       this.withinNode(node, arrowFunctionNodeClosestToDefinition)
     )
+  }
+
+  private isInStyledFunction(node: Node) {
+    if (!this.definition.styledFunctionName) return false
+    const closestTaggedTemplateExpression = this.closestNode(
+      node,
+      'TaggedTemplateExpression',
+    )
+    if (!Node.isTaggedTemplateExpression(closestTaggedTemplateExpression))
+      return false
+    const { isStyledFunction } = parseTaggedTemplateExpression(
+      closestTaggedTemplateExpression.getTag(),
+      this.definition.styledFunctionName,
+    )
+    return isStyledFunction
   }
 
   /**
