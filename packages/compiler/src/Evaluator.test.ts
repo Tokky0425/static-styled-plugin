@@ -28,6 +28,32 @@ describe('Evaluator', async () => {
     return [evaluator, node]
   }
 
+  const getLastNodeByName = (
+    value: string,
+    targetName: string,
+    withoutTheme?: boolean,
+    extra: Evaluator['extra'] = {},
+  ): [Evaluator, Node] => {
+    const file = project.createSourceFile('virtual.ts', value, {
+      overwrite: true,
+    })
+    const nodes = file.getDescendants()
+    let node
+
+    for (const nodeElement of nodes) {
+      if (nodeElement.getText() === targetName) {
+        node = nodeElement
+      }
+    }
+
+    const evaluator = new Evaluator({
+      extra,
+      definition: { ts, cssFunctionName: 'css' },
+      theme: withoutTheme ? null : theme,
+    })
+    return [evaluator, node!]
+  }
+
   test('AsExpression', () => {
     const value = `
       const theme = { color: { main: 'coral' } } as const;
@@ -122,51 +148,21 @@ describe('Evaluator', async () => {
   })
 
   describe('Identifier', () => {
-    const getTargetNode = (
-      value: string,
-      nth: number,
-      withoutTheme?: boolean,
-      extra: Evaluator['extra'] = {},
-    ): [Evaluator, Node] => {
-      const file = project.createSourceFile('virtual.ts', value, {
-        overwrite: true,
-      })
-      const nodes = file.getDescendants()
-      let node
-      let count = 0
-
-      for (const nodeElement of nodes) {
-        if (Node.isIdentifier(nodeElement)) {
-          count += 1
-          if (count === nth) {
-            node = nodeElement
-          }
-        }
-      }
-
-      const evaluator = new Evaluator({
-        extra,
-        definition: { ts, cssFunctionName: 'css' },
-        theme: withoutTheme ? null : theme,
-      })
-      return [evaluator, node!]
-    }
-
     test('declared by const', () => {
       const value = `
         const color = 'coral';
         const mainColor = color;
       `
-      const [evaluator, node] = getTargetNode(value, 3) // mainColor
+      const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
     test('declared by let', () => {
       const value = `
         let color = 'coral';
-        const mainColor = color;
+        return color;
       `
-      const [evaluator, node] = getTargetNode(value, 3) // mainColor
+      const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
 
@@ -174,27 +170,27 @@ describe('Evaluator', async () => {
       const value = `
         const color = { main: 'coral' } as const;
         const { main } = color;
-        const mainColor = main;
+        return main;
       `
-      const [evaluator, node] = getTargetNode(value, 6) // mainColor
+      const [evaluator, node] = getLastNodeByName(value, 'main')
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
     test('object with `as const`', () => {
       const value = `
         const color = { main: 'coral' } as const;
-        const mainColor = color;
+        return color;
       `
-      const [evaluator, node] = getTargetNode(value, 5) // mainColor
+      const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
     })
 
     test('object without `as const`', () => {
       const value = `
         const color = { main: 'coral' };
-        const mainColor = color;
+        return color;
       `
-      const [evaluator, node] = getTargetNode(value, 4) // mainColor
+      const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
     })
 
@@ -203,7 +199,7 @@ describe('Evaluator', async () => {
         const theme = { color: { main: 'coral' } } as const;
         const { color: { main } } = theme
       `
-      const [evaluator, node] = getTargetNode(value, 6) // main
+      const [evaluator, node] = getLastNodeByName(value, 'main')
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
   })
