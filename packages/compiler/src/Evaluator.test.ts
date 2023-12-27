@@ -145,6 +145,68 @@ describe('Evaluator', async () => {
       )
       expect(evaluator.evaluateNode(node)).toBe('Michael')
     })
+
+    // TODO: fix code to pass this test
+    test('object destructuring from `props.theme`', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { color } = props.theme;
+              return color.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'color.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('object destructuring from outside styled function', () => {
+      const value = `
+          const props = { theme: { color: { main: 'coral' } } } as const;
+          const { color } = props.theme;
+          const Text = styled.p\`
+            color: \${() => {
+              return color.main;
+            }};
+          \`
+        `
+
+      const [evaluator, node] = getLastNodeByName(value, 'color.main')
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    // TODO: fix code to pass this test
+    test('both object destructuring in param and variable declaration', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${({ theme }) => {
+              const { color } = theme;
+              return color.main;
+            }};
+          \`
+        `
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'color.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
   })
 
   describe('Identifier', () => {
@@ -196,8 +258,13 @@ describe('Evaluator', async () => {
 
     test('object destructuring', () => {
       const value = `
-        const theme = { color: { main: 'coral' } } as const;
-        const { color: { main } } = theme
+        const color = { main: 'coral' } as const;
+        const { main } = color;
+        const Text = styled.p\`
+          color: \${() => {
+            return main;
+          }};
+        \`
       `
       const [evaluator, node] = getLastNodeByName(value, 'main')
       expect(evaluator.evaluateNode(node)).toBe('coral')
@@ -221,6 +288,26 @@ describe('Evaluator', async () => {
         const [evaluator, node] = getLastNodeByName(value, 'main', false, extra)
         expect(evaluator.evaluateNode(node)).toBe('coral')
       })
+
+      // maybe support this
+      // test('object destructuring from `props` and destructured multiply', () => {
+      //   const value = `
+      //     const Text = styled.p\`
+      //       color: \${(props) => {
+      //         const { theme } = props;
+      //         const { color: { main } } = theme;
+      //         return main;
+      //       }};
+      //     \`
+      //   `
+      //
+      //   // this extra is expected to be added before coming here
+      //   const extra = {
+      //     props: { theme },
+      //   }
+      //   const [evaluator, node] = getLastNodeByName(value, 'main', false, extra)
+      //   expect(evaluator.evaluateNode(node)).toBe('coral')
+      // })
 
       // TODO: fix code to pass this test
       test('object destructuring from `props.theme`', () => {
