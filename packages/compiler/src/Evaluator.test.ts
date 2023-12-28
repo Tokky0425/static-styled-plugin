@@ -146,7 +146,6 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('Michael')
     })
 
-    // TODO: fix code to pass this test
     test('object destructuring from `props.theme`', () => {
       const value = `
           const Text = styled.p\`
@@ -185,7 +184,6 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
-    // TODO: fix code to pass this test
     test('both object destructuring in param and variable declaration', () => {
       const value = `
           const Text = styled.p\`

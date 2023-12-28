@@ -143,7 +143,11 @@ export class Evaluator {
 
     for (const node of referencesAsNode) {
       const nodeParent = node.getParent()
-      if (!Node.isPropertyAssignment(nodeParent)) continue
+      if (
+        !Node.isPropertyAssignment(nodeParent) &&
+        !Node.isShorthandPropertyAssignment(nodeParent) // TODO support ShoarthandPropertyAssignment in Identifier parser
+      )
+        continue
 
       const propertyInitializer = nodeParent.getInitializer()
       if (!propertyInitializer) continue
@@ -156,8 +160,11 @@ export class Evaluator {
       // const mainColor = theme.color // <- ts-evaluator evaluates as 'coral'
       // ```
       // so, when without `as const`, this method should return an error.
-      // TODO add condition like `|| !this.recursivelyCheckIsArg(nodeParent)`
-      if (!this.recursivelyCheckIsAsConst(nodeParent)) return TsEvalError
+      if (
+        !this.recursivelyCheckIsAsConst(nodeParent) &&
+        !this.recursivelyCheckIsArg(nodeParent)
+      )
+        return TsEvalError
 
       const propertyInitializerValue = this.evaluateNode(propertyInitializer)
       if (propertyInitializerValue === TsEvalError) return TsEvalError
@@ -822,6 +829,16 @@ export class Evaluator {
       return true
     } else {
       return this.recursivelyCheckIsAsConst(parent)
+    }
+  }
+
+  private recursivelyCheckIsArg(node: Node): boolean {
+    const parent = node.getParent()
+    if (!parent) return false
+    if (Node.isCallExpression(parent)) {
+      return true
+    } else {
+      return this.recursivelyCheckIsArg(parent)
     }
   }
 
