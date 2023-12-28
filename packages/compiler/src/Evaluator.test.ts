@@ -198,6 +198,7 @@ describe('Evaluator', async () => {
       // this extra is expected to be added before coming here
       const extra = {
         props: { theme },
+        theme,
       }
       const [evaluator, node] = getLastNodeByName(
         value,

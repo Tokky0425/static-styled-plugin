@@ -139,23 +139,15 @@ export class Evaluator {
   }
 
   evaluatePropertyAccessExpression(node: PropertyAccessExpression) {
-    let value: unknown
     const referencesAsNode = node.findReferencesAsNodes()
 
     for (const node of referencesAsNode) {
-      const nodeParent = node.getParentOrThrow()
+      const nodeParent = node.getParent()
       if (!Node.isPropertyAssignment(nodeParent)) continue
-      if (!this.recursivelyCheckIsAsConst(nodeParent)) break
 
       const propertyInitializer = nodeParent.getInitializer()
       if (!propertyInitializer) continue
-      const propertyInitializerValue = this.evaluateNode(propertyInitializer)
-      if (propertyInitializerValue === TsEvalError) return TsEvalError
-      value = propertyInitializerValue
-      break
-    }
 
-    if (!value) {
       // when using ts-evaluator, it return a wrong value because it ignores re-assignment.
       // e.g.
       // ```
@@ -164,35 +156,85 @@ export class Evaluator {
       // const mainColor = theme.color // <- ts-evaluator evaluates as 'coral'
       // ```
       // so, when without `as const`, this method should return an error.
-      // but before returning an error, we need to check if it can evaluate properly with extra.
+      // TODO add condition like `|| !this.recursivelyCheckIsArg(nodeParent)`
+      if (!this.recursivelyCheckIsAsConst(nodeParent)) return TsEvalError
 
-      const accessorTextArr = node.getText().split('.')
-      const recursivelyGetValueFromExtra = (
-        extra: EvaluateExtra,
-        depth = 0,
-      ): EvaluateExtra['string'] => {
-        const accessorName = accessorTextArr[depth]
-        const valueFromExtra = extra[accessorName]
-        if (typeof valueFromExtra === 'object' && valueFromExtra !== null) {
-          return recursivelyGetValueFromExtra(
-            valueFromExtra as EvaluateExtra,
-            depth + 1,
+      const propertyInitializerValue = this.evaluateNode(propertyInitializer)
+      if (propertyInitializerValue === TsEvalError) return TsEvalError
+      return propertyInitializerValue
+    }
+
+    const newExtra = { ...this.extra }
+    if (this.isInStyledFunction(node)) {
+      /**
+       * Here we are doubting that the value comes from theme of styled-components.
+       * e.g.
+       * const Text = styled.p`
+       *   color: ${(props) => {
+       *     const { color } = props.theme;
+       *       return color.main; <- when evaluating this member access expression
+       *   }};
+       * `
+       */
+      const expression = node.getExpression() // e.g. `color`
+
+      if (Node.isIdentifier(expression)) {
+        const definitionNodes = expression.getDefinitions()
+        if (definitionNodes.length === 1) {
+          const definition = definitionNodes[0]
+          const definitionNode = definition.getNode()
+          const variableDeclarationNode = this.closestNode(
+            definitionNode,
+            'VariableDeclaration',
           )
-        } else {
-          return valueFromExtra
+          if (Node.isVariableDeclaration(variableDeclarationNode)) {
+            const variableDeclarationNodeInitializer =
+              variableDeclarationNode.getInitializer()
+            if (variableDeclarationNodeInitializer) {
+              // TODO do not use split('.')
+              // TODO handle `as` expression
+              const accessorTextArr = variableDeclarationNodeInitializer
+                .getText()
+                .split('.')
+              accessorTextArr.push(expression.getText())
+
+              let tmpExtra = newExtra
+
+              for (let i = 0; i < accessorTextArr.length; i++) {
+                const accessorText = accessorTextArr[i]
+                const tmpExtraVal = tmpExtra[accessorText] as typeof this.extra
+                if (tmpExtraVal) {
+                  if (i === accessorTextArr.length - 1) {
+                    newExtra[accessorText] = tmpExtraVal
+                    break
+                  }
+                  if (typeof tmpExtraVal === 'object') {
+                    tmpExtra = tmpExtraVal
+                  }
+                }
+              }
+            }
+          }
         }
       }
-
-      const valueFromExtra = recursivelyGetValueFromExtra(this.extra)
-      if (
-        typeof valueFromExtra === 'string' ||
-        typeof valueFromExtra === 'number' ||
-        typeof valueFromExtra === 'object'
-      ) {
-        value = valueFromExtra
-      }
     }
-    return (value as PrimitiveType | ObjectType) || TsEvalError
+
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      typescript: this.definition.ts,
+      environment: { extra: newExtra },
+    })
+
+    if (evaluated.success) {
+      const value = evaluated.value
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'object'
+      )
+        return value as PrimitiveType | ObjectType
+    }
+    return TsEvalError
   }
 
   evaluateIdentifier(node: Identifier) {
