@@ -245,13 +245,14 @@ export class Evaluator {
   }
 
   evaluateIdentifier(node: Identifier) {
-    const definitionNodes = node.getDefinitions()
-    const definition = definitionNodes[0]
-    if (definitionNodes.length !== 1 || !definition) return TsEvalError
-    const definitionNode = definition.getNode()
-    const definitionNodeParent = definitionNode.getParent()
+    const definitionNodes = node.getDefinitionNodes()
+    const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    if (!definitionNode) return TsEvalError
+    const definitionNodeParent = definitionNode
+
     const isNodeDeclaredInsideSameScopeArrowFunction =
       this.isNodeDeclaredInsideSameScopeArrowFunction(node, definitionNode)
+    const isInStyledFunction = this.isInStyledFunction(node)
 
     const newEvaluator = new Evaluator({
       extra: {},
@@ -259,10 +260,7 @@ export class Evaluator {
       theme: this.theme,
     })
 
-    if (
-      isNodeDeclaredInsideSameScopeArrowFunction &&
-      this.isInStyledFunction(node)
-    ) {
+    if (isNodeDeclaredInsideSameScopeArrowFunction && isInStyledFunction) {
       /**
        * try to evaluate using `extra` first
        */
@@ -489,15 +487,23 @@ export class Evaluator {
     const properties = node.getProperties()
 
     for (const property of properties) {
-      if (!Node.isPropertyAssignment(property)) continue
-      const initializer = property.getInitializer()
-      if (!initializer) continue
-      if (Node.isObjectLiteralExpression(initializer)) {
-        this.evaluateObjectLiteralExpression(initializer)
-      } else if (initializer) {
-        const result = this.evaluateNode(initializer)
-        if (result === TsEvalError) return TsEvalError
-        initializer.replaceWithText(JSON.stringify(result))
+      if (Node.isPropertyAssignment(property)) {
+        const initializer = property.getInitializer()
+        if (!initializer) continue
+        if (Node.isObjectLiteralExpression(initializer)) {
+          this.evaluateObjectLiteralExpression(initializer)
+        } else {
+          const result = this.evaluateNode(initializer)
+          if (result === TsEvalError) return TsEvalError
+          initializer.replaceWithText(JSON.stringify(result))
+        }
+      } else if (Node.isShorthandPropertyAssignment(property)) {
+        const name = property.getNameNode()
+        const nameValue = this.evaluateNode(name)
+        if (nameValue === TsEvalError) return TsEvalError
+        property.replaceWithText(
+          `${name.getText()}: ${JSON.stringify(nameValue)}`,
+        )
       }
     }
 

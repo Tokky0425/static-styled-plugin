@@ -576,15 +576,55 @@ describe('Evaluator', async () => {
         expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
       })
 
-      test('when args are object', () => {
-        const value = `
-        const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
-        const getMainColor = () => {
-          return joinStr({ a: 'co', b: 'ral' })
-        }
-        `
-        const [evaluator, node] = getNode(value)
-        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      describe('when args are object', () => {
+        test('when passed directly', () => {
+          const value = `
+            const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
+            const getMainColor = () => {
+              return joinStr({ a: 'co', b: 'ral' })
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
+
+        test('when passed with variable assignment', () => {
+          const value = `
+            const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
+            const getMainColor = () => {
+              const strA = 'co'
+              const strB = 'ral'
+              return joinStr({ a: strA, b: strB })
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
+
+        test('when passed with shorthand property assignment', () => {
+          const value = `
+            const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
+            const getMainColor = () => {
+              const a = 'co'
+              const b = 'ral'
+              return joinStr({ a, b })
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
+
+        test('when passed with assignment by member access expression', () => {
+          const value = `
+            const joinStr = (arg: { a: string, b: string }) => arg.a + arg.b
+            const getMainColor = () => {
+              const obj = { a: 'co', b: 'ral' } as const
+              return joinStr({ a: obj.a, b: obj.b })
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
       })
 
       // test('when curry function', () => {
