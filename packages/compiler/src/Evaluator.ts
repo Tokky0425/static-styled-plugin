@@ -260,7 +260,8 @@ export class Evaluator {
                       if (typeof prevValue !== 'object') continue
                       const val = prevValue[keyName]
                       if (!val) continue
-                      result[keyName] = val
+                      const resultKeyName = nameNode.getText()
+                      result[resultKeyName] = val
                     }
                   }
                   return result

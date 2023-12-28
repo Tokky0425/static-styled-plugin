@@ -219,6 +219,29 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('gray')
     })
 
+    test('object destructuring from `props.theme` with rename', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { color: { border: newBorder } } = props.theme;
+              return newBorder.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'newBorder.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('gray')
+    })
+
     test('object destructuring from `theme` which declared above.', () => {
       const value = `
           const Text = styled.p\`
