@@ -6,7 +6,10 @@ const project = new Project()
 
 describe('Evaluator', async () => {
   const ts = (await import('typescript')).default
-  const theme = { color: { main: 'coral' }, fontSize: { m: 16 } }
+  const theme = {
+    color: { main: 'coral', border: { main: 'gray' } },
+    fontSize: { m: 16 },
+  }
 
   const getFirstNode = (
     value: string,
@@ -146,12 +149,13 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('Michael')
     })
 
-    test('object destructuring from `props.theme`', () => {
+    test('variable assignment from `props`', () => {
       const value = `
           const Text = styled.p\`
             color: \${(props) => {
-              const { color } = props.theme;
-              return color.main;
+              const newProps = props;
+              const theme = newProps.theme;
+              return theme.color.main;
             }};
           \`
         `
@@ -162,11 +166,105 @@ describe('Evaluator', async () => {
       }
       const [evaluator, node] = getLastNodeByName(
         value,
-        'color.main',
+        'theme.color.main',
         false,
         extra,
       )
       expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('variable assignment from `props`', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const newProps = props;
+              return newProps.theme.color.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'newProps.theme.color.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('object destructuring from `props.theme`', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { color: { border } } = props.theme;
+              return border.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'border.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('gray')
+    })
+
+    test('object destructuring from `theme` which declared above.', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const newTheme = props.theme;
+              const { color: { border } } = newTheme;
+              return border.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'border.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('gray')
+    })
+
+    test('object destructuring from `theme` which declared with object destructuring above.', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${(props) => {
+              const { theme } = props;
+              const { color: { border } } = theme;
+              return border.main;
+            }};
+          \`
+        `
+
+      // this extra is expected to be added before coming here
+      const extra = {
+        props: { theme },
+      }
+      const [evaluator, node] = getLastNodeByName(
+        value,
+        'border.main',
+        false,
+        extra,
+      )
+      expect(evaluator.evaluateNode(node)).toBe('gray')
     })
 
     test('object destructuring from outside styled function', () => {
