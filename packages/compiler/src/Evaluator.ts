@@ -190,12 +190,10 @@ export class Evaluator {
       ) // e.g. `color`
 
       if (firstIdentifier) {
-        const definitionNodes = firstIdentifier.getDefinitions()
-        if (definitionNodes.length === 1) {
-          const definition = definitionNodes[0]
-          const definitionNode = definition.getNode()
-          this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
-        }
+        const definitionNodes = firstIdentifier.getDefinitionNodes()
+        const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+        if (!definitionNode) return TsEvalError
+        this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
       }
     }
 
@@ -599,9 +597,9 @@ export class Evaluator {
     node: Node,
     targetNodeKindName: string,
   ): Node | undefined {
+    if (node.getKindName() === targetNodeKindName) return node
     const parent = node.getParent()
     if (!parent) return undefined
-    if (parent.getKindName() === targetNodeKindName) return parent
     return this.closestNode(parent, targetNodeKindName)
   }
 
