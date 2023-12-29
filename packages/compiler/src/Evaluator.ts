@@ -260,47 +260,26 @@ export class Evaluator {
         definitionNode,
         'VariableDeclaration',
       )
-
-      // TODO: this can handle this case:
-      //  `const { theme: { fontSize: { m } } } = props`
-      //  but not this:
-      //  `const { fontSize: { m } } = props.theme`
-      //  because recursivelyBuildExtraBasedOnTheme assumes that object destructuring is done from the top level
       if (Node.isVariableDeclaration(variableDeclarationNode)) {
         const variableDeclarationNodeInitializer =
           variableDeclarationNode.getInitializer()
         if (variableDeclarationNodeInitializer) {
-          // console.log(variableDeclarationNodeInitializer.getText())
-          let initializerText = '' // e.g. 'props'
-          if (
-            Node.isPropertyAccessExpression(variableDeclarationNodeInitializer)
-          ) {
-            initializerText = this.getFirstNodeForPropertyAccessExpression(
-              variableDeclarationNodeInitializer,
-            ).getText()
-          } else {
-            initializerText = variableDeclarationNodeInitializer.getText()
-          }
+          const newExtra = { ...this.extra }
+          this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
+          const evaluated = evaluate({
+            node: node.compilerNode,
+            typescript: this.definition.ts,
+            environment: { extra: newExtra },
+          })
 
-          if (this.extra[initializerText]) {
-            const name = variableDeclarationNode.getNameNode()
-            if (Node.isObjectBindingPattern(name)) {
-              const bindingElements = name.getElements()
-              if (this.theme) {
-                const newExtra = {
-                  ...this.recursivelyBuildExtraBasedOnTheme(bindingElements, {
-                    theme: this.theme,
-                  }),
-                  ...this.extra, // to prioritize descendant's args, ...extra should come at last
-                }
-
-                // do not give theme to avoid infinite loops that may occur
-                return new Evaluator({
-                  extra: newExtra,
-                  definition: { ...this.definition },
-                }).evaluateNode(node)
-              }
-            }
+          if (evaluated.success) {
+            const value = evaluated.value
+            if (
+              typeof value === 'string' ||
+              typeof value === 'number' ||
+              typeof value === 'object'
+            )
+              return value as PrimitiveType | ObjectType
           }
         }
       }
