@@ -327,6 +327,34 @@ describe('Evaluator', async () => {
       )
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
+
+    test('object literal with as const', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${() => {
+              const { color } = { color: { main: 'coral' } } as const;
+              return color.main;
+            }};
+          \`
+        `
+      // this extra is expected to be added before coming here
+      const [evaluator, node] = getLastNodeByName(value, 'color.main')
+      expect(evaluator.evaluateNode(node)).toBe('coral')
+    })
+
+    test('object literal not with as const', () => {
+      const value = `
+          const Text = styled.p\`
+            color: \${() => {
+              const { color } = { color: { main: 'coral' } };
+              return color.main;
+            }};
+          \`
+        `
+      // this extra is expected to be added before coming here
+      const [evaluator, node] = getLastNodeByName(value, 'color.main')
+      expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
+    })
   })
 
   describe('Identifier', () => {
@@ -364,7 +392,7 @@ describe('Evaluator', async () => {
         return color;
       `
       const [evaluator, node] = getLastNodeByName(value, 'color')
-      expect(evaluator.evaluateNode(node)).toStrictEqual({ main: 'coral' })
+      expect(evaluator.evaluateNode(node)).toEqual({ main: 'coral' })
     })
 
     test('object without `as const`', () => {

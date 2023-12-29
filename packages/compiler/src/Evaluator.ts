@@ -176,11 +176,15 @@ export class Evaluator {
     const firstIdentifier = node.getFirstDescendantByKind(SyntaxKind.Identifier) // e.g. `color`
     if (!firstIdentifier) return TsEvalError
 
-    const newExtra = { ...this.extra }
-    const isInStyledFunction = this.isInStyledFunction(node)
     const definitionNodes = firstIdentifier.getDefinitionNodes()
     const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
-    if (definitionNode && isInStyledFunction) {
+    const newExtra = this.isNodeDeclaredInsideSameScopeArrowFunction(
+      node,
+      definitionNode,
+    )
+      ? { ...this.extra }
+      : {}
+    if (definitionNode) {
       /**
        * Here we are doubting that the value comes from theme of styled-components.
        * e.g.
@@ -220,55 +224,71 @@ export class Evaluator {
 
     const isNodeDeclaredInsideSameScopeArrowFunction =
       this.isNodeDeclaredInsideSameScopeArrowFunction(node, definitionNode)
-    const isInStyledFunction = this.isInStyledFunction(node)
+    const newExtra = isNodeDeclaredInsideSameScopeArrowFunction
+      ? { ...this.extra }
+      : {}
+
+    /**
+     * Here, we are doubting that it's declared with the theme value
+     * e.g.
+     * const Text = styled.p`
+     *   font-size: ${(props) => {
+     *     const { theme: { fontSize: m } } = props
+     *     return m; // <- when evaluating `m` of this line
+     *   }};
+     * `
+     */
+    const variableDeclarationNode = this.closestNode(
+      definitionNode,
+      'VariableDeclaration',
+    )
+
+    if (
+      Node.isVariableDeclaration(variableDeclarationNode) &&
+      this.recursivelyCheckIsDeclaredWithConst(variableDeclarationNode)
+    ) {
+      const variableDeclarationNodeInitializer =
+        variableDeclarationNode.getInitializer()
+      if (variableDeclarationNodeInitializer) {
+        // TODO maybe make it a private function
+        const isDescendantObjectLiteral =
+          !!variableDeclarationNodeInitializer.getFirstDescendantByKind(
+            SyntaxKind.ObjectLiteralExpression,
+          )
+        const isVariableDeclarationNodeInitializerObjectLiteral =
+          Node.isObjectLiteralExpression(variableDeclarationNodeInitializer)
+        const isObjectLiteralButNotAsConst =
+          (isDescendantObjectLiteral ||
+            isVariableDeclarationNodeInitializerObjectLiteral) &&
+          !this.recursivelyCheckIsAsConst(variableDeclarationNodeInitializer)
+
+        if (!isObjectLiteralButNotAsConst) {
+          this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
+
+          const evaluated = evaluate({
+            node: node.compilerNode,
+            typescript: this.definition.ts,
+            environment: { extra: newExtra },
+          })
+
+          if (evaluated.success) {
+            const value = evaluated.value
+            if (
+              typeof value === 'string' ||
+              typeof value === 'number' ||
+              typeof value === 'object'
+            )
+              return value as PrimitiveType | ObjectType
+          }
+        }
+      }
+    }
 
     const newEvaluator = new Evaluator({
       extra: {},
       definition: this.definition,
       theme: this.theme,
     })
-
-    if (isNodeDeclaredInsideSameScopeArrowFunction && isInStyledFunction) {
-      /**
-       * Here, we are doubting that it's declared with the theme value
-       * e.g.
-       * const Text = styled.p`
-       *   font-size: ${(props) => {
-       *     const { theme: { fontSize: m } } = props
-       *     return m; // <- when evaluating `m` of this line
-       *   }};
-       * `
-       */
-      const variableDeclarationNode = this.closestNode(
-        definitionNode,
-        'VariableDeclaration',
-      )
-      const newExtra = { ...this.extra }
-
-      if (Node.isVariableDeclaration(variableDeclarationNode)) {
-        const variableDeclarationNodeInitializer =
-          variableDeclarationNode.getInitializer()
-        if (variableDeclarationNodeInitializer) {
-          this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
-        }
-      }
-
-      const evaluated = evaluate({
-        node: node.compilerNode,
-        typescript: this.definition.ts,
-        environment: { extra: newExtra },
-      })
-
-      if (evaluated.success) {
-        const value = evaluated.value
-        if (
-          typeof value === 'string' ||
-          typeof value === 'number' ||
-          typeof value === 'object'
-        )
-          return value as PrimitiveType | ObjectType
-      }
-    }
 
     if (Node.isPropertyAssignment(definitionNodeParent)) {
       /**
@@ -599,8 +619,9 @@ export class Evaluator {
 
   private isNodeDeclaredInsideSameScopeArrowFunction(
     node: Node,
-    definitionNode: Node,
+    definitionNode: Node | undefined,
   ) {
+    if (!definitionNode) return true
     const arrowFunctionNodeClosestToDefinition = this.closestNode(
       definitionNode,
       'ArrowFunction',
@@ -762,7 +783,10 @@ export class Evaluator {
       const nameNode = variableDeclarationNode.getNameNode()
       const variableDeclarationNodeInitializer =
         variableDeclarationNode.getInitializer()
-      if (variableDeclarationNodeInitializer) {
+      if (
+        variableDeclarationNodeInitializer &&
+        !Node.isArrowFunction(variableDeclarationNodeInitializer)
+      ) {
         const variableDeclarationNodeInitializerValue = this.evaluateNode(
           variableDeclarationNodeInitializer,
         ) as ObjectType
@@ -838,32 +862,29 @@ export class Evaluator {
   }
 
   private recursivelyCheckIsAsConst(node: Node): boolean {
+    if (Node.isAsExpression(node)) {
+      return true
+    }
     const parent = node.getParent()
     if (!parent) return false
-    if (Node.isAsExpression(parent)) {
-      return true
-    } else {
-      return this.recursivelyCheckIsAsConst(parent)
-    }
+    return this.recursivelyCheckIsAsConst(parent)
   }
 
   private recursivelyCheckIsArg(node: Node): boolean {
+    if (Node.isCallExpression(node)) {
+      return true
+    }
     const parent = node.getParent()
     if (!parent) return false
-    if (Node.isCallExpression(parent)) {
-      return true
-    } else {
-      return this.recursivelyCheckIsArg(parent)
-    }
+    return this.recursivelyCheckIsArg(parent)
   }
 
   private recursivelyCheckIsDeclaredWithConst(node: Node): boolean {
+    if (Node.isVariableDeclarationList(node)) {
+      return node.getText().startsWith('const')
+    }
     const parent = node.getParent()
     if (!parent) return false
-    if (Node.isVariableDeclarationList(parent)) {
-      return parent.getText().startsWith('const')
-    } else {
-      return this.recursivelyCheckIsDeclaredWithConst(parent)
-    }
+    return this.recursivelyCheckIsDeclaredWithConst(parent)
   }
 }
