@@ -173,8 +173,14 @@ export class Evaluator {
       return propertyInitializerValue
     }
 
+    const firstIdentifier = node.getFirstDescendantByKind(SyntaxKind.Identifier) // e.g. `color`
+    if (!firstIdentifier) return TsEvalError
+
     const newExtra = { ...this.extra }
-    if (this.isInStyledFunction(node)) {
+    const isInStyledFunction = this.isInStyledFunction(node)
+    const definitionNodes = firstIdentifier.getDefinitionNodes()
+    const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    if (definitionNode && isInStyledFunction) {
       /**
        * Here we are doubting that the value comes from theme of styled-components.
        * e.g.
@@ -185,16 +191,7 @@ export class Evaluator {
        *   }};
        * `
        */
-      const firstIdentifier = node.getFirstDescendantByKind(
-        SyntaxKind.Identifier,
-      ) // e.g. `color`
-
-      if (firstIdentifier) {
-        const definitionNodes = firstIdentifier.getDefinitionNodes()
-        const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
-        if (!definitionNode) return TsEvalError
-        this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
-      }
+      this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
     }
 
     const evaluated = evaluate({
@@ -233,19 +230,7 @@ export class Evaluator {
 
     if (isNodeDeclaredInsideSameScopeArrowFunction && isInStyledFunction) {
       /**
-       * try to evaluate using `extra` first
-       */
-      const valueFromExtra = this.extra[node.getText()]
-      if (
-        typeof valueFromExtra === 'string' ||
-        typeof valueFromExtra === 'number' ||
-        typeof valueFromExtra === 'object'
-      ) {
-        return valueFromExtra as PrimitiveType | ObjectType
-      }
-
-      /**
-       * if not exists, doubt that it's declared with the theme value
+       * Here, we are doubting that it's declared with the theme value
        * e.g.
        * const Text = styled.p`
        *   font-size: ${(props) => {
@@ -258,28 +243,30 @@ export class Evaluator {
         definitionNode,
         'VariableDeclaration',
       )
+      const newExtra = { ...this.extra }
+
       if (Node.isVariableDeclaration(variableDeclarationNode)) {
         const variableDeclarationNodeInitializer =
           variableDeclarationNode.getInitializer()
         if (variableDeclarationNodeInitializer) {
-          const newExtra = { ...this.extra }
           this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
-          const evaluated = evaluate({
-            node: node.compilerNode,
-            typescript: this.definition.ts,
-            environment: { extra: newExtra },
-          })
-
-          if (evaluated.success) {
-            const value = evaluated.value
-            if (
-              typeof value === 'string' ||
-              typeof value === 'number' ||
-              typeof value === 'object'
-            )
-              return value as PrimitiveType | ObjectType
-          }
         }
+      }
+
+      const evaluated = evaluate({
+        node: node.compilerNode,
+        typescript: this.definition.ts,
+        environment: { extra: newExtra },
+      })
+
+      if (evaluated.success) {
+        const value = evaluated.value
+        if (
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'object'
+        )
+          return value as PrimitiveType | ObjectType
       }
     }
 
