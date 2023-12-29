@@ -194,89 +194,7 @@ export class Evaluator {
         if (definitionNodes.length === 1) {
           const definition = definitionNodes[0]
           const definitionNode = definition.getNode()
-          const variableDeclarationNode = this.closestNode(
-            definitionNode,
-            'VariableDeclaration',
-          )
-          if (Node.isVariableDeclaration(variableDeclarationNode)) {
-            const nameNode = variableDeclarationNode.getNameNode()
-            const variableDeclarationNodeInitializer =
-              variableDeclarationNode.getInitializer()
-            if (variableDeclarationNodeInitializer) {
-              const variableDeclarationNodeInitializerValue = this.evaluateNode(
-                variableDeclarationNodeInitializer,
-              ) as ObjectType
-              if (Node.isIdentifier(nameNode)) {
-                /**
-                 *
-                 * e.g.
-                 * const Text = styled.p`
-                 *   color: ${(props) => {
-                 *     const newProps = props;
-                 *     return newProps.theme.color.main; <- when evaluating this member access expression
-                 *   }};
-                 * `
-                 */
-                const keyName = nameNode.getText() // 'newProps' in the case above
-                newExtra[keyName] = variableDeclarationNodeInitializerValue
-              } else if (Node.isObjectBindingPattern(nameNode)) {
-                /**
-                 *
-                 * e.g.
-                 * const Text = styled.p`
-                 *   color: ${(props) => {
-                 *     const { color: { border } } = props.theme;
-                 *     return border.main; <- when evaluating this member access expression
-                 *   }};
-                 * `
-                 *
-                 * recursivelyBuildProperty function recursively builds a new object for newExtra.
-                 * In the case above, when `theme` is `{ color: { border: { main: 'coral' } } }`, it returns the object below.
-                 * `{ border: { main: 'coral' } }`
-                 */
-                type RecursivelyBuildPropertyResult = {
-                  [key: string]: PrimitiveType | ObjectType
-                }
-
-                const recursivelyBuildProperty = (
-                  objectBindingPatternNode: ObjectBindingPattern,
-                  prevValue: PrimitiveType | ObjectType,
-                  result: RecursivelyBuildPropertyResult = {},
-                ): RecursivelyBuildPropertyResult => {
-                  const elements = objectBindingPatternNode.getElements()
-                  for (const element of elements) {
-                    const propertyName = element.getPropertyNameNode()
-                    const nameNode = element.getNameNode()
-                    const keyNode = propertyName ?? nameNode
-                    const keyName = keyNode.getText()
-                    const nextValue =
-                      typeof prevValue === 'object'
-                        ? prevValue[keyName]
-                        : prevValue
-
-                    if (Node.isObjectBindingPattern(nameNode)) {
-                      recursivelyBuildProperty(nameNode, nextValue, result)
-                    } else {
-                      if (typeof prevValue !== 'object') continue
-                      const val = prevValue[keyName]
-                      if (!val) continue
-                      const resultKeyName = nameNode.getText()
-                      result[resultKeyName] = val
-                    }
-                  }
-                  return result
-                }
-
-                Object.assign(
-                  newExtra,
-                  recursivelyBuildProperty(
-                    nameNode,
-                    variableDeclarationNodeInitializerValue,
-                  ),
-                )
-              }
-            }
-          }
+          this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
         }
       }
     }
@@ -759,21 +677,6 @@ export class Evaluator {
     return expression as Identifier
   }
 
-  /**
-   * e.g. `theme.fontSize.m` -> `m`
-   * @param node
-   * @private
-   */
-  // private getLastNodeForPropertyAccessExpression(
-  //   node: PropertyAccessExpression,
-  // ): Identifier {
-  //   const expression = node.getParent()
-  //   if (Node.isPropertyAccessExpression(expression)) {
-  //     return this.getLastNodeForPropertyAccessExpression(expression)
-  //   }
-  //   return node.getNameNode()
-  // }
-
   private addAncestorThemeArgsToExtra(node: ArrowFunction) {
     const body = node.getBody()
 
@@ -881,6 +784,93 @@ export class Evaluator {
         args[index] === undefined ? param.defaultValue : args[index]
     })
     return result as EvaluateExtra
+  }
+
+  private buildExtraFromVariableDeclaration(
+    definitionNode: Node,
+    targetExtra: EvaluateExtra,
+  ) {
+    const variableDeclarationNode = this.closestNode(
+      definitionNode,
+      'VariableDeclaration',
+    )
+    if (Node.isVariableDeclaration(variableDeclarationNode)) {
+      const nameNode = variableDeclarationNode.getNameNode()
+      const variableDeclarationNodeInitializer =
+        variableDeclarationNode.getInitializer()
+      if (variableDeclarationNodeInitializer) {
+        const variableDeclarationNodeInitializerValue = this.evaluateNode(
+          variableDeclarationNodeInitializer,
+        ) as ObjectType
+        if (Node.isIdentifier(nameNode)) {
+          /**
+           *
+           * e.g.
+           * const Text = styled.p`
+           *   color: ${(props) => {
+           *     const newProps = props;
+           *     return newProps.theme.color.main; <- when evaluating `main` of this line
+           *   }};
+           * `
+           */
+          const keyName = nameNode.getText() // 'newProps' in the case above
+          targetExtra[keyName] = variableDeclarationNodeInitializerValue
+        } else if (Node.isObjectBindingPattern(nameNode)) {
+          /**
+           *
+           * e.g.
+           * const Text = styled.p`
+           *   color: ${(props) => {
+           *     const { color: { border } } = props.theme;
+           *     return border.main; <- when evaluating `main` of this line
+           *   }};
+           * `
+           *
+           * recursivelyBuildProperty function recursively builds a new object for newExtra.
+           * In the case above, when `theme` is `{ color: { border: { main: 'coral' } } }`, it returns the object below.
+           * `{ border: { main: 'coral' } }`
+           */
+          type RecursivelyBuildPropertyResult = {
+            [key: string]: PrimitiveType | ObjectType
+          }
+
+          const recursivelyBuildProperty = (
+            objectBindingPatternNode: ObjectBindingPattern,
+            prevValue: PrimitiveType | ObjectType,
+            result: RecursivelyBuildPropertyResult = {},
+          ): RecursivelyBuildPropertyResult => {
+            const elements = objectBindingPatternNode.getElements()
+            for (const element of elements) {
+              const propertyName = element.getPropertyNameNode()
+              const nameNode = element.getNameNode()
+              const keyNode = propertyName ?? nameNode
+              const keyName = keyNode.getText()
+              const nextValue =
+                typeof prevValue === 'object' ? prevValue[keyName] : prevValue
+
+              if (Node.isObjectBindingPattern(nameNode)) {
+                recursivelyBuildProperty(nameNode, nextValue, result)
+              } else {
+                if (typeof prevValue !== 'object') continue
+                const val = prevValue[keyName]
+                if (!val) continue
+                const resultKeyName = nameNode.getText()
+                result[resultKeyName] = val
+              }
+            }
+            return result
+          }
+
+          Object.assign(
+            targetExtra,
+            recursivelyBuildProperty(
+              nameNode,
+              variableDeclarationNodeInitializerValue,
+            ),
+          )
+        }
+      }
+    }
   }
 
   private recursivelyCheckIsAsConst(node: Node): boolean {
