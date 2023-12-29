@@ -457,7 +457,6 @@ describe('Evaluator', async () => {
       //   expect(evaluator.evaluateNode(node)).toBe('coral')
       // })
 
-      // TODO: fix code to pass this test
       test('object destructuring from `props.theme`', () => {
         const value = `
           const Text = styled.p\`

@@ -308,10 +308,6 @@ export class Evaluator {
         }
       }
 
-      const newExtra = isNodeDeclaredInsideSameScopeArrowFunction
-        ? { ...this.extra }
-        : {}
-
       /**
        * Here, we are doubting that the value comes from theme of styled-components.
        * e.g.
@@ -331,40 +327,25 @@ export class Evaluator {
         Node.isVariableDeclaration(variableDeclarationNode) &&
         this.recursivelyCheckIsDeclaredWithConst(variableDeclarationNode)
       ) {
-        const variableDeclarationNodeInitializer =
-          variableDeclarationNode.getInitializer()
-        if (variableDeclarationNodeInitializer) {
-          // TODO maybe make it a private function
-          const isDescendantObjectLiteral =
-            !!variableDeclarationNodeInitializer.getFirstDescendantByKind(
-              SyntaxKind.ObjectLiteralExpression,
-            )
-          const isVariableDeclarationNodeInitializerObjectLiteral =
-            Node.isObjectLiteralExpression(variableDeclarationNodeInitializer)
-          const isObjectLiteralButNotAsConst =
-            (isDescendantObjectLiteral ||
-              isVariableDeclarationNodeInitializerObjectLiteral) &&
-            !this.recursivelyCheckIsAsConst(variableDeclarationNodeInitializer)
+        const newExtra = isNodeDeclaredInsideSameScopeArrowFunction
+          ? { ...this.extra }
+          : {}
+        this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
 
-          if (!isObjectLiteralButNotAsConst) {
-            this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
+        const evaluated = evaluate({
+          node: node.compilerNode,
+          typescript: this.definition.ts,
+          environment: { extra: newExtra },
+        })
 
-            const evaluated = evaluate({
-              node: node.compilerNode,
-              typescript: this.definition.ts,
-              environment: { extra: newExtra },
-            })
-
-            if (evaluated.success) {
-              const value = evaluated.value
-              if (
-                typeof value === 'string' ||
-                typeof value === 'number' ||
-                typeof value === 'object'
-              )
-                return value as PrimitiveType | ObjectType
-            }
-          }
+        if (evaluated.success) {
+          const value = evaluated.value
+          if (
+            typeof value === 'string' ||
+            typeof value === 'number' ||
+            typeof value === 'object'
+          )
+            return value as PrimitiveType | ObjectType
         }
       }
     }
