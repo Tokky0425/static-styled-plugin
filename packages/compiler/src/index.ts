@@ -9,9 +9,8 @@ export type { Theme } from './types'
 export { parseTheme } from './parseTheme'
 export { styleRegistry } from './styleRegistry'
 
-const project = new Project()
-
-export function compile(code: string, filePath: string, theme: Theme | null) {
+export function compile(code: string, filePath: string) {
+  const project = new Project()
   const file = project.createSourceFile(filePath, code, { overwrite: true })
   const styledFunctionName = getStyledFunctionName(file)
   if (!styledFunctionName) return { code: file.getFullText() }
