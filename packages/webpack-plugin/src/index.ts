@@ -1,5 +1,6 @@
 import path from 'path'
 import * as fs from 'fs'
+import chalk from 'chalk'
 import type { Compiler } from 'webpack'
 import { themeRegistry } from '@static-styled-plugin/compiler'
 
@@ -21,7 +22,11 @@ export class StaticStyledPlugin {
   }
   apply(compiler: Compiler) {
     if (this.themeFilePath && !fs.existsSync(this.themeFilePath)) {
-      console.log('Theme file path is specified but the file was not found.')
+      console.log(
+        `[static-styled-plugin] ` +
+          chalk.hex('#000080').bgYellow(' WARN ') +
+          ` Theme file path is specified but the file was not found.`,
+      )
     }
 
     compiler.hooks.beforeCompile.tap(pluginName, () => {

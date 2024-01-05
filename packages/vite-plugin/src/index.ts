@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import chalk from 'chalk'
 import { Plugin, ResolvedConfig } from 'vite'
 import {
   compile,
@@ -32,7 +33,9 @@ export function staticStyledPlugin(options?: Options): Plugin {
         config.configFileDependencies.push(themeFilePath)
         if (!fs.existsSync(themeFilePath)) {
           console.log(
-            'Theme file path is specified but the file was not found.',
+            `[static-styled-plugin] ` +
+              chalk.hex('#000080').bgYellow(' WARN ') +
+              ` Theme file path is specified but the file was not found.`,
           )
         }
       }
