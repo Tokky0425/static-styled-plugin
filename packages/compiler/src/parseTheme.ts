@@ -1,5 +1,4 @@
 import { Node, Project, SourceFile } from 'ts-morph'
-import path from 'path'
 import fs from 'fs'
 import type { Theme } from './types'
 import { Evaluator, TsEvalError } from './Evaluator'
@@ -14,8 +13,7 @@ const project = new Project()
  * - it is declared with const assertion (`as const`)
  * - it does not depend on values from node_modules
  */
-export function parseTheme(themeFileRelativePath: string): null | Theme {
-  const themeFilePath = path.join(process.cwd(), themeFileRelativePath)
+export function parseTheme(themeFilePath: string): null | Theme {
   if (!fs.existsSync(themeFilePath)) return null
 
   const fileBuffer = fs.readFileSync(themeFilePath)

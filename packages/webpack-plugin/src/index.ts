@@ -1,3 +1,5 @@
+import path from 'path'
+import * as fs from 'fs'
 import type { Compiler } from 'webpack'
 import { themeRegistry } from '@static-styled-plugin/compiler'
 
@@ -12,10 +14,16 @@ export class StaticStyledPlugin {
   cssOutputDir: string | null
 
   constructor(options?: Options) {
-    this.themeFilePath = options?.themeFilePath ?? null
+    this.themeFilePath = options?.themeFilePath
+      ? path.join(process.cwd(), options.themeFilePath)
+      : null
     this.cssOutputDir = options?.cssOutputDir ?? null
   }
   apply(compiler: Compiler) {
+    if (this.themeFilePath && !fs.existsSync(this.themeFilePath)) {
+      console.log('Theme file path is specified but the file was not found.')
+    }
+
     compiler.hooks.beforeCompile.tap(pluginName, () => {
       themeRegistry.register(this.themeFilePath)
     })

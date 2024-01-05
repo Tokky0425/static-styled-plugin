@@ -16,7 +16,7 @@ const loader: LoaderDefinitionFunction<{
 
   if (themeFilePath) {
     // recompile whenever theme file changes
-    this.addDependency(path.join(process.cwd(), themeFilePath))
+    this.addDependency(themeFilePath)
   }
 
   const {

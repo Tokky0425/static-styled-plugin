@@ -1,4 +1,5 @@
 import path from 'path'
+import fs from 'fs'
 import { Plugin, ResolvedConfig } from 'vite'
 import {
   compile,
@@ -19,18 +20,23 @@ export function staticStyledPlugin(options?: Options): Plugin {
   } = {}
   let command: ResolvedConfig['command']
   const themeFilePath = options?.themeFilePath
+    ? path.join(process.cwd(), options.themeFilePath)
+    : null
 
   return {
     name: 'static-styled',
     enforce: 'pre',
     configResolved(config) {
       if (themeFilePath) {
-        themeRegistry.register(themeFilePath)
         // enable rebuild when theme file changes
-        config.configFileDependencies.push(
-          path.join(process.cwd(), themeFilePath),
-        )
+        config.configFileDependencies.push(themeFilePath)
+        if (!fs.existsSync(themeFilePath)) {
+          console.log(
+            'Theme file path is specified but the file was not found.',
+          )
+        }
       }
+      themeRegistry.register(themeFilePath)
       command = config.command
     },
     transform(sourceCode, id) {
