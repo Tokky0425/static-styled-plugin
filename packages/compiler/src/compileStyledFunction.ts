@@ -3,14 +3,13 @@ import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
 import { generateHash } from './generateHash'
 import { compileCssString } from './compileCssString'
-import { Theme } from './types'
 import { Evaluator, TsEvalError } from './Evaluator'
+import { themeRegistry } from './themeRegistry'
 
 export function compileStyledFunction(
   file: SourceFile,
   styledFunctionName: string,
   cssFunctionName: string | null,
-  theme: Theme | null,
 ) {
   let shouldUseClient = false
   file.forEachDescendant((node) => {
@@ -31,7 +30,7 @@ export function compileStyledFunction(
     const evaluator = new Evaluator({
       extra: {},
       definition: { styledFunctionName, cssFunctionName },
-      theme,
+      theme: themeRegistry.getTheme(),
     })
     const result = evaluator.evaluateStyledTaggedTemplateExpression(node)
     if (result === TsEvalError) {

@@ -2,26 +2,32 @@ import type { LoaderDefinitionFunction } from 'webpack'
 import { outputFileSync } from 'fs-extra'
 import { createHash } from 'crypto'
 import path from 'path'
-import { Theme, compile, styleRegistry } from '@static-styled-plugin/compiler'
+import { compile, styleRegistry } from '@static-styled-plugin/compiler'
 
 const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
 const injectedStylePath = require.resolve('../assets/injectedStyle.css')
 
 const loader: LoaderDefinitionFunction<{
-  theme: Theme | null
+  themeFilePath: string | null
   cssOutputDir: string | null
 }> = function (sourceCode: string) {
   const options = this.getOptions()
-  const { theme, cssOutputDir } = options
+  const { themeFilePath, cssOutputDir } = options
 
   const callback = this.callback
   const resourcePath = this.resourcePath
+
+  if (themeFilePath) {
+    // recompile whenever theme file changes
+    this.addDependency(path.join(process.cwd(), themeFilePath))
+  }
+
   const {
     code,
     useClientExpressionExtracted,
     hasReactImportStatement,
     shouldUseClient,
-  } = compile(sourceCode, resourcePath, theme)
+  } = compile(sourceCode, resourcePath)
 
   const useClientExpression =
     useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''

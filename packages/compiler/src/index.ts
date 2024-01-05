@@ -1,5 +1,4 @@
 import { compileStyledFunction } from './compileStyledFunction'
-import { Theme } from './types'
 import { Project } from 'ts-morph'
 import { extractUseClientExpression } from './extractUseClientExpression'
 import { getStyledFunctionName } from './getStyledFunctionName'
@@ -8,6 +7,7 @@ import { checkHasReactImportStatement } from './checkHasReactImportStatement'
 export type { Theme } from './types'
 export { parseTheme } from './parseTheme'
 export { styleRegistry } from './styleRegistry'
+export { themeRegistry } from './themeRegistry'
 
 export function compile(code: string, filePath: string) {
   const project = new Project()
@@ -22,7 +22,6 @@ export function compile(code: string, filePath: string) {
     file,
     styledFunctionName,
     cssFunctionName,
-    theme,
   )
   return {
     code: file.getFullText(),

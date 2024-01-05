@@ -2,8 +2,8 @@ import path from 'path'
 import { Plugin, ResolvedConfig } from 'vite'
 import {
   compile,
-  parseTheme,
   styleRegistry,
+  themeRegistry,
 } from '@static-styled-plugin/compiler'
 
 type Options = {
@@ -19,12 +19,18 @@ export function staticStyledPlugin(options?: Options): Plugin {
   } = {}
   let command: ResolvedConfig['command']
   const themeFilePath = options?.themeFilePath
-  const theme = themeFilePath ? parseTheme(themeFilePath) : null
 
   return {
     name: 'static-styled',
     enforce: 'pre',
     configResolved(config) {
+      if (themeFilePath) {
+        themeRegistry.register(themeFilePath)
+        // enable rebuild when theme file changes
+        config.configFileDependencies.push(
+          path.join(process.cwd(), themeFilePath),
+        )
+      }
       command = config.command
     },
     transform(sourceCode, id) {
@@ -36,7 +42,7 @@ export function staticStyledPlugin(options?: Options): Plugin {
         useClientExpressionExtracted,
         hasReactImportStatement,
         shouldUseClient,
-      } = compile(sourceCode, id, theme)
+      } = compile(sourceCode, id)
       const useClientExpression =
         useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
       const cssString = styleRegistry.getRule()

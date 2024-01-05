@@ -1,5 +1,5 @@
 const withStaticStyled = require('@static-styled-plugin/next-plugin')({
-  themeFilePath: './app/theme.ts'
+  themeFilePath: './app/theme.ts',
 })
 
 /** @type {import('next').NextConfig} */
