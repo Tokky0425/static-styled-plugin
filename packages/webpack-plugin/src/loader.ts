@@ -14,9 +14,6 @@ const loader: LoaderDefinitionFunction<{
   const options = this.getOptions()
   const { themeFilePath, cssOutputDir } = options
 
-  const callback = this.callback
-  const resourcePath = this.resourcePath
-
   if (themeFilePath) {
     // recompile whenever theme file changes
     this.addDependency(path.join(process.cwd(), themeFilePath))
@@ -27,21 +24,21 @@ const loader: LoaderDefinitionFunction<{
     useClientExpressionExtracted,
     hasReactImportStatement,
     shouldUseClient,
-  } = compile(sourceCode, resourcePath)
+  } = compile(sourceCode, this.resourcePath)
 
   const useClientExpression =
     useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
 
   const cssString = styleRegistry.getRule()
   if (!cssString) {
-    callback(null, useClientExpression + code)
+    this.callback(null, useClientExpression + code)
     return
   }
   styleRegistry.reset()
 
   const outputPath: string | undefined = this._compilation?.options.output.path
   if (!outputPath) {
-    callback(null, useClientExpression + code)
+    this.callback(null, useClientExpression + code)
     return
   }
 
@@ -54,7 +51,7 @@ const loader: LoaderDefinitionFunction<{
     const cssFilePath = path.join(cssOutputDir, `${fileHash}.css`)
     outputFileSync(cssFilePath, cssString)
     const importCSSIdentifier = `import "${cssFilePath}"\n`
-    callback(
+    this.callback(
       null,
       useClientExpression + reactImportStatement + importCSSIdentifier + code,
     )
@@ -68,7 +65,7 @@ const loader: LoaderDefinitionFunction<{
         `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`,
       ),
     )};\n`
-    callback(
+    this.callback(
       null,
       useClientExpression + reactImportStatement + importCSSIdentifier + code,
     )
