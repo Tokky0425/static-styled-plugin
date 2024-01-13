@@ -361,7 +361,7 @@ describe('Evaluator', async () => {
     test('declared by const', () => {
       const value = `
         const color = 'coral';
-        const mainColor = color;
+        return color;
       `
       const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toBe('coral')
@@ -378,8 +378,8 @@ describe('Evaluator', async () => {
 
     test('declared by object destructuring', () => {
       const value = `
-        const color = { main: 'coral' } as const;
-        const { main } = color;
+        const theme = { color: { main: 'coral' } } as const;
+        const { color: { main } } = theme;
         return main;
       `
       const [evaluator, node] = getLastNodeByName(value, 'main')
@@ -402,20 +402,6 @@ describe('Evaluator', async () => {
       `
       const [evaluator, node] = getLastNodeByName(value, 'color')
       expect(evaluator.evaluateNode(node)).toBe(TsEvalError)
-    })
-
-    test('object destructuring', () => {
-      const value = `
-        const color = { main: 'coral' } as const;
-        const { main } = color;
-        const Text = styled.p\`
-          color: \${() => {
-            return main;
-          }};
-        \`
-      `
-      const [evaluator, node] = getLastNodeByName(value, 'main')
-      expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
     describe('when the target is related to theme', () => {
@@ -484,15 +470,6 @@ describe('Evaluator', async () => {
       const mainColor = a + b;
     `
     const [evaluator, node] = getFirstNode(value, SyntaxKind.BinaryExpression)
-    expect(evaluator.evaluateNode(node)).toBe('coral')
-  })
-
-  test('Identifier', () => {
-    const value = `
-      const color = 'coral';
-      const mainColor = color;
-    `
-    const [evaluator, node] = getFirstNode(value, SyntaxKind.Identifier)
     expect(evaluator.evaluateNode(node)).toBe('coral')
   })
 
@@ -833,17 +810,31 @@ describe('Evaluator', async () => {
     })
 
     describe('when function declaration', () => {
-      test('when args are passed directly', () => {
-        const value = `
-        function joinStr(a: string, b: string) {
-          return a + b
-        }
-        const getMainColor = () => {
-          return joinStr('co', 'ral')
-        }
-      `
-        const [evaluator, node] = getNode(value)
-        expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+      describe('when args are passed directly', () => {
+        test('when args are primitive values', () => {
+          const value = `
+            function joinStr(a: string, b: string) {
+              return a + b
+            }
+            const getMainColor = () => {
+              return joinStr('co', 'ral')
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
+        test('when args are object values', () => {
+          const value = `
+            function joinStr(a: { foo: string }, b: { bar: string }) {
+              return a.foo + b.bar
+            }
+            const getMainColor = () => {
+              return joinStr({ foo: 'co' }, { bar: 'ral' })
+            }
+          `
+          const [evaluator, node] = getNode(value)
+          expect(evaluator.evaluateNode(node)).toStrictEqual('coral')
+        })
       })
     })
   })

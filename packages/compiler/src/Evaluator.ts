@@ -146,21 +146,13 @@ export class Evaluator {
 
     const definitionNodes = firstIdentifier.getDefinitionNodes()
     const definitionNode: Node<TS.Node> | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
-    const newExtra = this.isNodeDeclaredInsideSameScopeArrowFunction(
-      node,
-      definitionNode,
-    )
-      ? { ...this.extra }
-      : {}
+    const newExtra = structuredClone(this.extra)
     if (definitionNode) {
       /**
-       * Here we are doubting that the value comes from theme of styled-components.
        * e.g.
+       * const { color } = { color: { main: 'coral' } } as const
        * const Text = styled.p`
-       *   color: ${(props) => {
-       *     const { color } = props.theme;
-       *       return color.main; <- when evaluating this member access expression
-       *   }};
+       *   color: ${() => color.main}; <- when evaluating this property access expression, we need to add `{ color: { main: 'coral' } }` to `extra`
        * `
        */
       this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
@@ -186,136 +178,33 @@ export class Evaluator {
 
   evaluateIdentifier(node: Identifier) {
     const definitionNodes = node.getDefinitionNodes()
-
-    for (const definitionNode of definitionNodes) {
-      const definitionNodeParent = definitionNode
-      const isNodeDeclaredInsideSameScopeArrowFunction =
-        this.isNodeDeclaredInsideSameScopeArrowFunction(node, definitionNode)
-      const newEvaluator = new Evaluator({
-        extra: {},
-        definition: this.definition,
-        theme: this.theme,
-      })
-
-      if (Node.isPropertyAssignment(definitionNodeParent)) {
-        /**
-         * when the identifier is initialized by object property assignment
-         * e.g.
-         * const theme = { color: { main: 'coral' } }; as const;
-         * const { color: { main } } = theme; // <- when evaluating `main` of this line
-         */
-        if (!this.recursivelyCheckIsAsConst(definitionNodeParent))
-          return TsEvalError
-        const propertyInitializer = definitionNodeParent.getInitializer()
-        if (!propertyInitializer) return TsEvalError
-        const propertyInitializerValue =
-          isNodeDeclaredInsideSameScopeArrowFunction
-            ? this.evaluateNode(propertyInitializer)
-            : newEvaluator.evaluateNode(propertyInitializer)
-        if (propertyInitializerValue === TsEvalError) return TsEvalError
-        return propertyInitializerValue
-      } else if (Node.isVariableDeclaration(definitionNodeParent)) {
-        /**
-         * when the identifier is initialized by variable declaration
-         * e.g.
-         * const color = 'coral';
-         * return color // <- when evaluating `color` of this line
-         */
-        const propertyInitializerValue =
-          isNodeDeclaredInsideSameScopeArrowFunction
-            ? this.evaluateNode(definitionNodeParent)
-            : newEvaluator.evaluateNode(definitionNodeParent)
-        if (propertyInitializerValue === TsEvalError) return TsEvalError
-        return propertyInitializerValue
-      } else if (Node.isBindingElement(definitionNodeParent)) {
-        /**
-         * when the identifier is initialized by object destructuring
-         * e.g.
-         * const color = { main: 'coral' } as const;
-         * const { main } = color;
-         * return main; // <- when evaluating `main` of this line
-         */
-        const referencesAsNode = definitionNodeParent.findReferencesAsNodes()
-        for (const referencedNode of referencesAsNode) {
-          if (referencedNode === node) continue
-          const referencedNodeParent = referencedNode.getParent()
-          if (!Node.isPropertyAssignment(referencedNodeParent)) continue
-          if (!this.recursivelyCheckIsAsConst(referencedNodeParent)) break
-          const propertyInitializer = referencedNodeParent.getInitializer()
-          if (!propertyInitializer) continue
-          const propertyInitializerValue =
-            isNodeDeclaredInsideSameScopeArrowFunction
-              ? this.evaluateNode(propertyInitializer)
-              : newEvaluator.evaluateNode(propertyInitializer)
-          if (
-            typeof propertyInitializerValue === 'string' ||
-            typeof propertyInitializerValue === 'number'
-          ) {
-            return propertyInitializerValue
-          }
-        }
-      } else if (Node.isParameterDeclaration(definitionNodeParent)) {
-        /**
-         * when the target node is declared in parameters, try to evaluate it from `extra`
-         * because values correspond to it must have been added to `extra` before coming in this method.
-         * e.g.
-         * function joinStr(a: string, b: string) {
-         *   return a + b // <- when evaluating `a` and `b` of this line
-         * }
-         * const getMainColor = () => {
-         *   return joinStr('co', 'ral')
-         * }
-         */
-        const valueFromExtra = this.extra[node.getText()]
-        if (
-          typeof valueFromExtra === 'string' ||
-          typeof valueFromExtra === 'number' ||
-          typeof valueFromExtra === 'object'
-        ) {
-          return valueFromExtra as PrimitiveType | ObjectType
-        }
-      }
-
+    const definitionNode: Node<TS.Node> | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    const newExtra = structuredClone(this.extra)
+    if (definitionNode) {
       /**
-       * Here, we are doubting that the value comes from theme of styled-components.
        * e.g.
+       * const { color } = { color: 'coral' } as const;
        * const Text = styled.p`
-       *   font-size: ${(props) => {
-       *     const { theme: { fontSize: m } } = props
-       *     return m; // <- when evaluating `m` of this line
-       *   }};
+       *   color: ${() => color}; <- when evaluating this identifier, we need to add `{ color: 'coral' }` to `extra`};
        * `
        */
-      const variableDeclarationNode = this.closestNode(
-        definitionNode,
-        'VariableDeclaration',
-      )
+      this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
+    }
 
+    const evaluated = evaluate({
+      node: node.compilerNode,
+      typescript: this.definition.ts,
+      environment: { extra: newExtra },
+    })
+
+    if (evaluated.success) {
+      const value = evaluated.value
       if (
-        Node.isVariableDeclaration(variableDeclarationNode) &&
-        this.recursivelyCheckIsDeclaredWithConst(variableDeclarationNode)
-      ) {
-        const newExtra = isNodeDeclaredInsideSameScopeArrowFunction
-          ? { ...this.extra }
-          : {}
-        this.buildExtraFromVariableDeclaration(definitionNode, newExtra)
-
-        const evaluated = evaluate({
-          node: node.compilerNode,
-          typescript: this.definition.ts,
-          environment: { extra: newExtra },
-        })
-
-        if (evaluated.success) {
-          const value = evaluated.value
-          if (
-            typeof value === 'string' ||
-            typeof value === 'number' ||
-            typeof value === 'object'
-          )
-            return value as PrimitiveType | ObjectType
-        }
-      }
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'object'
+      )
+        return value as PrimitiveType | ObjectType
     }
     return TsEvalError
   }
