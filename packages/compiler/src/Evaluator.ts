@@ -141,43 +141,11 @@ export class Evaluator {
   }
 
   evaluatePropertyAccessExpression(node: PropertyAccessExpression) {
-    const referencesAsNode = node.findReferencesAsNodes()
-
-    for (const node of referencesAsNode) {
-      const nodeParent = node.getParent()
-      if (
-        !Node.isPropertyAssignment(nodeParent) &&
-        !Node.isShorthandPropertyAssignment(nodeParent)
-      )
-        continue
-
-      const propertyInitializer = nodeParent.getInitializer()
-      if (!propertyInitializer) continue
-
-      // when using ts-evaluator, it return a wrong value because it ignores re-assignment.
-      // e.g.
-      // ```
-      // const theme = { color: 'coral' }
-      // theme.color = 'red'
-      // const mainColor = theme.color // <- ts-evaluator evaluates as 'coral'
-      // ```
-      // so, when without `as const`, this method should return an error.
-      if (
-        !this.recursivelyCheckIsAsConst(nodeParent) &&
-        !this.recursivelyCheckIsArg(nodeParent)
-      )
-        return TsEvalError
-
-      const propertyInitializerValue = this.evaluateNode(propertyInitializer)
-      if (propertyInitializerValue === TsEvalError) return TsEvalError
-      return propertyInitializerValue
-    }
-
     const firstIdentifier = node.getFirstDescendantByKind(SyntaxKind.Identifier) // e.g. `color`
     if (!firstIdentifier) return TsEvalError
 
     const definitionNodes = firstIdentifier.getDefinitionNodes()
-    const definitionNode = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    const definitionNode: Node<TS.Node> | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
     const newExtra = this.isNodeDeclaredInsideSameScopeArrowFunction(
       node,
       definitionNode,
@@ -783,8 +751,8 @@ export class Evaluator {
         !Node.isArrowFunction(variableDeclarationNodeInitializer)
       ) {
         const variableDeclarationNodeInitializerValue = this.evaluateNode(
-          variableDeclarationNodeInitializer,
-        ) as ObjectType
+          variableDeclarationNode,
+        )
         if (Node.isIdentifier(nameNode)) {
           /**
            *
@@ -814,12 +782,20 @@ export class Evaluator {
            * `{ border: { main: 'coral' } }`
            */
           type RecursivelyBuildPropertyResult = {
-            [key: string]: PrimitiveType | ObjectType
+            [key: string]:
+              | PrimitiveType
+              | ObjectType
+              | ArrayType
+              | typeof TsEvalError
           }
 
           const recursivelyBuildProperty = (
             objectBindingPatternNode: ObjectBindingPattern,
-            prevValue: PrimitiveType | ObjectType,
+            prevValue:
+              | PrimitiveType
+              | ObjectType
+              | ArrayType
+              | typeof TsEvalError,
             result: RecursivelyBuildPropertyResult = {},
           ): RecursivelyBuildPropertyResult => {
             const elements = objectBindingPatternNode.getElements()
@@ -829,12 +805,15 @@ export class Evaluator {
               const keyNode = propertyName ?? nameNode
               const keyName = keyNode.getText()
               const nextValue =
-                typeof prevValue === 'object' ? prevValue[keyName] : prevValue
+                typeof prevValue === 'object' && !Array.isArray(prevValue)
+                  ? prevValue[keyName]
+                  : prevValue
 
               if (Node.isObjectBindingPattern(nameNode)) {
                 recursivelyBuildProperty(nameNode, nextValue, result)
               } else {
-                if (typeof prevValue !== 'object') continue
+                if (typeof prevValue !== 'object' || Array.isArray(prevValue))
+                  continue
                 const val = prevValue[keyName]
                 if (!val) continue
                 const resultKeyName = nameNode.getText()
