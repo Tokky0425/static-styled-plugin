@@ -149,7 +149,7 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('Michael')
     })
 
-    test('variable assignment from `props`', () => {
+    test('variable assignment from `props` with multiple variable declarations', () => {
       const value = `
           const Text = styled.p\`
             color: \${(props) => {
@@ -173,7 +173,7 @@ describe('Evaluator', async () => {
       expect(evaluator.evaluateNode(node)).toBe('coral')
     })
 
-    test('variable assignment from `props`', () => {
+    test('variable assignment from `props` variable declaration', () => {
       const value = `
           const Text = styled.p\`
             color: \${(props) => {

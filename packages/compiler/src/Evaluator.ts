@@ -353,18 +353,33 @@ export class Evaluator {
   }
 
   evaluateVariableDeclaration(node: VariableDeclaration) {
+    const isDeclaredWithConst = this.recursivelyCheckIsDeclaredWithConst(node)
+    if (!isDeclaredWithConst) return TsEvalError
+
     const initializer = node.getInitializer()
     if (!initializer) return TsEvalError
+
+    let isDeclaredWithAsConst = false
+    if (Node.isAsExpression(initializer)) {
+      isDeclaredWithAsConst = true
+    } else if (Node.isSatisfiesExpression(initializer)) {
+      const expression = initializer.getExpression()
+      if (Node.isAsExpression(expression)) {
+        isDeclaredWithAsConst = true
+      }
+    }
+
+    // when declared with `as const`, it is safe to evaluate
+    if (isDeclaredWithAsConst) {
+      return this.evaluateNode(initializer)
+    }
+
+    // object and array are mutable without `as const`, so it is not safe to evaluate
     if (
       Node.isObjectLiteralExpression(initializer) ||
       Node.isArrayLiteralExpression(initializer)
     ) {
-      // when object literal or array literal, `as const` is required to be parsed
-      if (!this.recursivelyCheckIsAsConst(initializer)) return TsEvalError
-    } else {
-      // otherwise, it is required to be declared with `const` to be parsed
-      if (!this.recursivelyCheckIsDeclaredWithConst(initializer))
-        return TsEvalError
+      return TsEvalError
     }
     return this.evaluateNode(initializer)
   }
