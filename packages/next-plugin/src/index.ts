@@ -10,12 +10,7 @@ module.exports =
   (nextConfig: NextConfig = {}) => {
     return Object.assign({}, nextConfig, {
       webpack(config: Configuration) {
-        config.plugins?.push(
-          new StaticStyledPlugin({
-            ...options,
-            cssOutputDir: './.next/cache/static-styled',
-          }),
-        )
+        config.plugins?.push(new StaticStyledPlugin(options))
         return config
       },
     } as NextConfig)

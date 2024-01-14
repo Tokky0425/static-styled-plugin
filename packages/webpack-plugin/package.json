@@ -15,11 +15,9 @@
     "assets"
   ],
   "dependencies": {
-    "@static-styled-plugin/compiler": "workspace:*",
-    "fs-extra": "^11.1.1"
+    "@static-styled-plugin/compiler": "workspace:*"
   },
   "devDependencies": {
-    "@types/fs-extra": "^11.0.3",
     "chalk": "4.1.2",
     "webpack": "5.89.0"
   },
