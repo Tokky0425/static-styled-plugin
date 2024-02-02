@@ -29,17 +29,27 @@ export class StaticStyledPlugin {
     compiler.hooks.beforeCompile.tap(pluginName, () => {
       themeRegistry.register(this.themeFilePath)
     })
-    compiler.options.module?.rules.push({
-      test: /\/.+?\.tsx$/,
-      exclude: /node_modules/,
-      use: [
-        {
-          loader: require.resolve('./loader'),
-          options: {
-            themeFilePath: this.themeFilePath,
+    compiler.options.module?.rules.push(
+      {
+        test: /\/.+?\.tsx$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve('./loader'),
+            options: {
+              themeFilePath: this.themeFilePath,
+            },
           },
-        },
-      ],
-    })
+        ],
+      },
+      {
+        test: /\/virtual\.static-styled\.css/,
+        use: [
+          {
+            loader: require.resolve('./cssLoader'),
+          },
+        ],
+      },
+    )
   }
 }

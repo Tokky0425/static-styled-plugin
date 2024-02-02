@@ -1,8 +1,7 @@
 import type { LoaderDefinitionFunction } from 'webpack'
 import { compile, styleRegistry } from '@static-styled-plugin/compiler'
 
-const injectStyleLoaderPath = require.resolve('./injectStyleLoader')
-const injectedStylePath = require.resolve('../assets/injectedStyle.css')
+const injectedStylePath = require.resolve('../assets/virtual.static-styled.css')
 
 const loader: LoaderDefinitionFunction<{
   themeFilePath: string | null
@@ -42,13 +41,10 @@ const loader: LoaderDefinitionFunction<{
     ? ''
     : 'import React from "react";\n'
 
-  const injectStyleLoader = `${injectStyleLoaderPath}?${JSON.stringify({
-    sourceCode: cssString,
-  })}`
   const importCSSIdentifier = `import ${JSON.stringify(
     this.utils.contextify(
       this.context || this.rootContext,
-      `static-styled.css!=!${injectStyleLoader}!${injectedStylePath}`,
+      `${injectedStylePath}?css=${cssString}`,
     ),
   )};\n`
   this.callback(
