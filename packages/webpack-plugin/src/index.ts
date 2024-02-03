@@ -38,6 +38,7 @@ export class StaticStyledPlugin {
             loader: require.resolve('./loader'),
             options: {
               themeFilePath: this.themeFilePath,
+              devMode: compiler.options.mode === 'development',
             },
           },
         ],

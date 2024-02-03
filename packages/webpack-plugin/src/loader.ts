@@ -1,13 +1,22 @@
 import type { LoaderDefinitionFunction } from 'webpack'
 import { compile, styleRegistry } from '@static-styled-plugin/compiler'
+import fs, { existsSync, writeFileSync } from 'fs'
+import path from 'path'
 
-const injectedStylePath = require.resolve('../assets/virtual.static-styled.css')
+const virtualCssPath = (() => {
+  const absPath = path.join(__dirname, '../virtual.static-styled.css')
+  if (!existsSync(absPath)) {
+    writeFileSync(absPath, '')
+  }
+  return absPath
+})()
 
 const loader: LoaderDefinitionFunction<{
   themeFilePath: string | null
+  devMode: boolean
 }> = function (sourceCode: string) {
   const options = this.getOptions()
-  const { themeFilePath } = options
+  const { themeFilePath, devMode } = options
 
   if (themeFilePath) {
     // recompile whenever theme file changes
@@ -44,9 +53,16 @@ const loader: LoaderDefinitionFunction<{
   const importCSSIdentifier = `import ${JSON.stringify(
     this.utils.contextify(
       this.context || this.rootContext,
-      `${injectedStylePath}?css=${cssString}`,
+      `${virtualCssPath}?css=${cssString}`,
     ),
   )};\n`
+
+  if (devMode) {
+    // Next.js skips HMR for Client Component when there is no change in the CSS file.
+    // To enable HMR, we need to make a diff for the CSS file.
+    fs.writeFileSync(virtualCssPath, `/* ${Date.now()} */`)
+  }
+
   this.callback(
     null,
     useClientExpression + reactImportStatement + importCSSIdentifier + code,
