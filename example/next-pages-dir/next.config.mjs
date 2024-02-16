@@ -1,3 +1,5 @@
+import withStaticStyled from '@static-styled-plugin/next-plugin'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -5,3 +7,5 @@ const nextConfig = {
       styledComponents: true,
     },
 }
+
+export default withStaticStyled({ themeFilePath: './theme/theme.ts' })(nextConfig)
