@@ -9,5 +9,5 @@ const nextConfig = {
 }
 
 export default withStaticStyled({
-  themeFilePath: './theme/theme.ts'
+  themeFilePath: './app/theme.ts',
 })(nextConfig)

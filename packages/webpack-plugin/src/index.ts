@@ -9,7 +9,7 @@ type Options = {
 }
 
 const pluginName = 'StaticStyledPlugin'
-export class StaticStyledPlugin {
+export default class StaticStyledPlugin {
   themeFilePath: string | null
 
   constructor(options?: Options) {
