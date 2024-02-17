@@ -53,7 +53,7 @@ const loader: LoaderDefinitionFunction<{
   const importCSSIdentifier = `import ${JSON.stringify(
     this.utils.contextify(
       this.context || this.rootContext,
-      `${virtualCssPath}?css=${cssString}`,
+      `${virtualCssPath}?css=${encodeURIComponent(cssString)}`,
     ),
   )};\n`
 

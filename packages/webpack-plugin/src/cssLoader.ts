@@ -4,7 +4,7 @@ const loader: LoaderDefinitionFunction = function cssLoader(
   this: LoaderContext<unknown>,
   src: string,
 ) {
-  const params = new URLSearchParams(this.resourceQuery)
+  const params = new URLSearchParams(decodeURIComponent(this.resourceQuery))
   const css = `${src}\n${params.get('css') ?? ''}`
   this.callback(undefined, css)
 }
