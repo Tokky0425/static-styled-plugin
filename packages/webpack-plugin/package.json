@@ -1,7 +1,7 @@
 {
   "name": "@static-styled-plugin/webpack-plugin",
   "version": "0.1.0",
-  "description": "",
+  "description": "A plugin that makes styled-components zero-runtime.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc -w",
