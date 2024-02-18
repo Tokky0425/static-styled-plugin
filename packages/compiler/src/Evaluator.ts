@@ -145,7 +145,7 @@ export class Evaluator {
     if (!firstIdentifier) return TsEvalError
 
     const definitionNodes = firstIdentifier.getDefinitionNodes()
-    const definitionNode: Node<TS.Node> | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    const definitionNode: Node | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
     const newExtra = structuredClone(this.extra)
     if (definitionNode) {
       /**
@@ -178,7 +178,7 @@ export class Evaluator {
 
   evaluateIdentifier(node: Identifier) {
     const definitionNodes = node.getDefinitionNodes()
-    const definitionNode: Node<TS.Node> | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+    const definitionNode: Node | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
     const newExtra = structuredClone(this.extra)
     if (definitionNode) {
       /**

@@ -17,8 +17,8 @@
     "@static-styled-plugin/compiler": "workspace:*"
   },
   "devDependencies": {
-    "chalk": "4.1.2",
-    "webpack": "5.89.0"
+    "chalk": "5.3.0",
+    "webpack": "5.90.2"
   },
   "peerDependencies": {
     "webpack": "^5"
