@@ -2,14 +2,18 @@
   "name": "@static-styled-plugin/next-plugin",
   "version": "0.1.0",
   "description": "A plugin that makes styled-components zero-runtime.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tokky0425/static-styled-plugin.git"
+  },
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc -w",
     "build": "tsc"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Tokky0425",
+  "license": "MIT",
   "files": [
     "dist"
   ],

@@ -1,8 +1,12 @@
 {
   "name": "static-styled-plugin",
   "version": "0.1.0",
-  "description": "",
+  "description": "A plugin that makes styled-components zero-runtime.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tokky0425/static-styled-plugin.git"
+  },
   "main": "index.js",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./packages/**\" dev",
@@ -27,7 +31,7 @@
   "packageManager": "pnpm@8.6.7",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "typescript": "5.3.3"
   },
