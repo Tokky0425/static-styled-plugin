@@ -12,7 +12,7 @@ npm install @static-styled/webpack-plugin
 
 ```js
 // webpack.config.js
-const StaticStyledPlugin = require('@static-styled-plugin/webpack-plugin')
+const { StaticStyledPlugin } = require('@static-styled-plugin/webpack-plugin')
 
 module.exports = {
   plugins: [

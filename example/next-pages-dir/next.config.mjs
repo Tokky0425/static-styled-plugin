@@ -1,4 +1,4 @@
-import withStaticStyled from '@static-styled-plugin/next-plugin'
+import { withStaticStyled } from '@static-styled-plugin/next-plugin'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

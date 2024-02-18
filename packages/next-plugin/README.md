@@ -12,7 +12,7 @@ npm install @static-styled/next-plugin
 
 ```js
 // next.config.mjs
-import withStaticStyled from '@static-styled-plugin/next-plugin'
+import { withStaticStyled } from '@static-styled-plugin/next-plugin'
 
 const nextConfig = {
   compiler: {

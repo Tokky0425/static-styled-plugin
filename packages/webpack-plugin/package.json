@@ -14,10 +14,10 @@
     "dist"
   ],
   "dependencies": {
-    "@static-styled-plugin/compiler": "workspace:*"
+    "@static-styled-plugin/compiler": "workspace:*",
+    "chalk": "4.1.2"
   },
   "devDependencies": {
-    "chalk": "5.3.0",
     "webpack": "5.90.2"
   },
   "peerDependencies": {

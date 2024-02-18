@@ -12,7 +12,7 @@ type Options = {
   themeFilePath?: string
 }
 
-export default function staticStyled(options?: Options): Plugin {
+export function staticStyled(options?: Options): Plugin {
   // see https://vitejs.dev/guide/api-plugin.html#virtual-modules-convention
   const virtualModuleId = 'virtual:static-styled'
   const targetExtensionRegex = new RegExp(/\.tsx?$/)

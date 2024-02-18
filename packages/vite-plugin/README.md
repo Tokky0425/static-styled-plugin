@@ -12,7 +12,7 @@ npm install @static-styled/vite-plugin
 
 ```js
 // vite.config.js
-import staticStyled from '@static-styled-plugin/vite-plugin'
+import { staticStyled } from '@static-styled-plugin/vite-plugin'
 
 export default defineConfig({
   plugins: [react(), staticStyled({ themeFilePath: './src/theme.ts' })],
