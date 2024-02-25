@@ -16,7 +16,8 @@
   "author": "Tokky0425",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.test.*"
   ],
   "dependencies": {
     "stylis": "4.3.1",
