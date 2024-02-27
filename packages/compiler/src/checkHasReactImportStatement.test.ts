@@ -30,7 +30,7 @@ describe('checkHasReactImportStatement', () => {
         expect(result).toBe(true)
       })
     })
-    test('double quote', () => {
+    describe('double quote', () => {
       test('default import', () => {
         const file = project.createSourceFile(
           'virtual.ts',
