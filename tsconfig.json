@@ -19,5 +19,5 @@
     },
     "types": ["node"]
   },
-  "exclude": ["node_modules", "packages/**/dist/**", "packages/**/vite.config.ts"]
+  "exclude": ["node_modules", "packages/**/dist"]
 }
