@@ -451,16 +451,6 @@ export class Evaluator {
     return TsEvalError
   }
 
-  private closestNode(
-    node: Node,
-    targetNodeKindName: string,
-  ): Node | undefined {
-    if (node.getKindName() === targetNodeKindName) return node
-    const parent = node.getParent()
-    if (!parent) return undefined
-    return this.closestNode(parent, targetNodeKindName)
-  }
-
   private addAncestorThemeArgsToExtra(node: ArrowFunction) {
     const body = node.getBody()
 
@@ -574,11 +564,10 @@ export class Evaluator {
     definitionNode: Node,
     targetExtra: EvaluateExtra,
   ) {
-    const variableDeclarationNode = this.closestNode(
-      definitionNode,
-      'VariableDeclaration',
-    )
-    if (Node.isVariableDeclaration(variableDeclarationNode)) {
+    const variableDeclarationNode = Node.isVariableDeclaration(definitionNode)
+      ? definitionNode
+      : definitionNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)
+    if (variableDeclarationNode) {
       const nameNode = variableDeclarationNode.getNameNode()
       const variableDeclarationNodeInitializer =
         variableDeclarationNode.getInitializer()
