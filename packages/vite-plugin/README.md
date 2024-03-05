@@ -5,7 +5,7 @@ A plugin that makes styled-components zero-runtime.
 ## Installation
 
 ```sh
-npm install @static-styled/vite-plugin
+npm install @static-styled-plugin/vite-plugin
 ```
 
 ## Setup

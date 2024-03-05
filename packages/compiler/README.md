@@ -4,6 +4,6 @@ A plugin that makes styled-components zero-runtime.
 
 ## Plugins
 
-- @static-styled/webpack-plugin
-- @static-styled/vite-plugin
-- @static-styled/next-plugin
+- @static-styled-plugin/webpack-plugin
+- @static-styled-plugin/vite-plugin
+- @static-styled-plugin/next-plugin
