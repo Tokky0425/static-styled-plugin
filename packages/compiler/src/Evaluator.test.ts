@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
 import { Node, Project, SyntaxKind } from 'ts-morph'
 import { Evaluator, TsEvalError } from './Evaluator'
+import * as ts from 'typescript'
 
 const project = new Project()
 
 describe('Evaluator', async () => {
-  const ts = (await import('typescript')).default
   const theme = {
     color: { main: 'coral', border: { main: 'gray' } },
     fontSize: { m: 16 },

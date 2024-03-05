@@ -22,7 +22,6 @@ import {
   TemplateExpression,
   VariableDeclaration,
 } from 'ts-morph'
-import { parseTaggedTemplateExpression } from './compileStyledFunction'
 
 type EvaluateExtra = IEnvironment['extra']
 type ErrorType = typeof TsEvalError
@@ -452,68 +451,6 @@ export class Evaluator {
     return TsEvalError
   }
 
-  private closestNode(
-    node: Node,
-    targetNodeKindName: string,
-  ): Node | undefined {
-    if (node.getKindName() === targetNodeKindName) return node
-    const parent = node.getParent()
-    if (!parent) return undefined
-    return this.closestNode(parent, targetNodeKindName)
-  }
-
-  private withinNode(node: Node, targetNode: Node): boolean {
-    const parent = node.getParent()
-    if (!parent) return false
-    if (parent === targetNode) return true
-    return this.withinNode(parent, targetNode)
-  }
-
-  private isNodeDeclaredInsideSameScopeArrowFunction(
-    node: Node,
-    definitionNode: Node | undefined,
-  ) {
-    if (!definitionNode) return true
-    const arrowFunctionNodeClosestToDefinition = this.closestNode(
-      definitionNode,
-      'ArrowFunction',
-    )
-    return (
-      !!arrowFunctionNodeClosestToDefinition &&
-      this.withinNode(node, arrowFunctionNodeClosestToDefinition)
-    )
-  }
-
-  private isInStyledFunction(node: Node) {
-    if (!this.definition.styledFunctionName) return false
-    const closestTaggedTemplateExpression = this.closestNode(
-      node,
-      'TaggedTemplateExpression',
-    )
-    if (!Node.isTaggedTemplateExpression(closestTaggedTemplateExpression))
-      return false
-    const { isStyledFunction } = parseTaggedTemplateExpression(
-      closestTaggedTemplateExpression.getTag(),
-      this.definition.styledFunctionName,
-    )
-    return isStyledFunction
-  }
-
-  /**
-   * e.g. `theme.fontSize.m` -> `theme`
-   * @param node
-   * @private
-   */
-  private getFirstNodeForPropertyAccessExpression(
-    node: PropertyAccessExpression,
-  ): Identifier {
-    const expression = node.getExpression()
-    if (Node.isPropertyAccessExpression(expression)) {
-      return this.getFirstNodeForPropertyAccessExpression(expression)
-    }
-    return expression as Identifier
-  }
-
   private addAncestorThemeArgsToExtra(node: ArrowFunction) {
     const body = node.getBody()
 
@@ -627,11 +564,10 @@ export class Evaluator {
     definitionNode: Node,
     targetExtra: EvaluateExtra,
   ) {
-    const variableDeclarationNode = this.closestNode(
-      definitionNode,
-      'VariableDeclaration',
-    )
-    if (Node.isVariableDeclaration(variableDeclarationNode)) {
+    const variableDeclarationNode = Node.isVariableDeclaration(definitionNode)
+      ? definitionNode
+      : definitionNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)
+    if (variableDeclarationNode) {
       const nameNode = variableDeclarationNode.getNameNode()
       const variableDeclarationNodeInitializer =
         variableDeclarationNode.getInitializer()
@@ -722,24 +658,6 @@ export class Evaluator {
         }
       }
     }
-  }
-
-  private recursivelyCheckIsAsConst(node: Node): boolean {
-    if (Node.isAsExpression(node)) {
-      return true
-    }
-    const parent = node.getParent()
-    if (!parent) return false
-    return this.recursivelyCheckIsAsConst(parent)
-  }
-
-  private recursivelyCheckIsArg(node: Node): boolean {
-    if (Node.isCallExpression(node)) {
-      return true
-    }
-    const parent = node.getParent()
-    if (!parent) return false
-    return this.recursivelyCheckIsArg(parent)
   }
 
   private recursivelyCheckIsDeclaredWithConst(node: Node): boolean {
