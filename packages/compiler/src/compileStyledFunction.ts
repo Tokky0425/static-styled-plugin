@@ -1,4 +1,4 @@
-import { Node, SourceFile } from 'ts-morph'
+import { Node, SourceFile, TaggedTemplateExpression } from 'ts-morph'
 import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
 import { generateClassNameHash } from './generateClassNameHash'
@@ -73,7 +73,11 @@ export function compileStyledFunction(
 
     let hintClassNameByFileName = ''
     if (options?.devMode) {
-      hintClassNameByFileName = `static-styled__${fileBaseName}`
+      const componentName = getVariableDeclarationName(node)
+      hintClassNameByFileName = [
+        `static-styled__${fileBaseName}`,
+        componentName,
+      ].join('__')
     }
 
     node.replaceWithText(`
@@ -87,6 +91,14 @@ export function compileStyledFunction(
   `)
   })
   return shouldUseClient
+}
+
+function getVariableDeclarationName(node: TaggedTemplateExpression) {
+  const parent = node.getParent()
+  if (Node.isVariableDeclaration(parent)) {
+    return parent.getName()
+  }
+  return ''
 }
 
 type ParseTaggedTemplateExpressionResult = {
