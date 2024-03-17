@@ -1,7 +1,7 @@
 import { Node, SourceFile } from 'ts-morph'
 import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
-import { generateHash } from './generateHash'
+import { generateClassNameHash } from './generateClassNameHash'
 import { compileCssString } from './compileCssString'
 import { Evaluator, TsEvalError } from './Evaluator'
 import { themeRegistry } from './themeRegistry'
@@ -39,7 +39,7 @@ export function compileStyledFunction(
     }
 
     const cssString = result.replace(/\s+/g, ' ').trim()
-    const classNameHash = generateHash(cssString)
+    const classNameHash = generateClassNameHash(cssString)
     const className = `static-styled-${classNameHash}`
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
