@@ -9,7 +9,11 @@ export { parseTheme } from './parseTheme'
 export { styleRegistry } from './styleRegistry'
 export { themeRegistry } from './themeRegistry'
 
-export function compile(code: string, filePath: string) {
+export function compile(
+  code: string,
+  filePath: string,
+  options?: { devMode?: boolean },
+) {
   const project = new Project()
   const file = project.createSourceFile(filePath, code, { overwrite: true })
   const styledFunctionName = getStyledFunctionName(file)
@@ -22,6 +26,7 @@ export function compile(code: string, filePath: string) {
     file,
     styledFunctionName,
     cssFunctionName,
+    options,
   )
   return {
     code: file.getFullText(),

@@ -28,7 +28,7 @@ const loader: LoaderDefinitionFunction<{
     useClientExpressionExtracted,
     hasReactImportStatement,
     shouldUseClient,
-  } = compile(sourceCode, this.resourcePath)
+  } = compile(sourceCode, this.resourcePath, { devMode })
 
   const useClientExpression =
     useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''

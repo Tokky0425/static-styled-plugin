@@ -10,6 +10,7 @@ export function compileStyledFunction(
   file: SourceFile,
   styledFunctionName: string,
   cssFunctionName: string | null,
+  options?: { devMode?: boolean },
 ) {
   let shouldUseClient = false
   file.forEachDescendant((node) => {
@@ -41,7 +42,8 @@ export function compileStyledFunction(
     const processDir = process.cwd()
     const fileDir = file.getDirectoryPath()
     const relativeFileDir = fileDir.replace(processDir, '')
-    const relativeFilePath = `${relativeFileDir}/${file.getBaseName()}`
+    const fileBaseName = file.getBaseName()
+    const relativeFilePath = `${relativeFileDir}/${fileBaseName}`
     const cssString = result.replace(/\s+/g, ' ').trim()
     const classNameHash = generateClassNameHash(
       relativeFilePath + node.getStartLineNumber() + cssString,
@@ -69,12 +71,17 @@ export function compileStyledFunction(
       })
       .join(', ')
 
+    let hintClassNameByFileName = ''
+    if (options?.devMode) {
+      hintClassNameByFileName = `static-styled__${fileBaseName}`
+    }
+
     node.replaceWithText(`
     (props: any) => {
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} } as any
       const propsWithAttrs = { ...props, ...attrsProps } as any
-      const joinedClassName = ['${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
+      const joinedClassName = ['${hintClassNameByFileName}', '${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
       return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
   `)
