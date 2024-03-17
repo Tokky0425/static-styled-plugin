@@ -12,7 +12,7 @@ export { themeRegistry } from './themeRegistry'
 export function compile(
   code: string,
   filePath: string,
-  options?: { devMode?: boolean },
+  options?: { devMode?: boolean; prefix?: string },
 ) {
   const project = new Project()
   const file = project.createSourceFile(filePath, code, { overwrite: true })

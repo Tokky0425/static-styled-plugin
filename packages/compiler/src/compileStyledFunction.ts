@@ -6,11 +6,13 @@ import { compileCssString } from './compileCssString'
 import { Evaluator, TsEvalError } from './Evaluator'
 import { themeRegistry } from './themeRegistry'
 
+const DEFAULT_PREFIX = 'ss'
+
 export function compileStyledFunction(
   file: SourceFile,
   styledFunctionName: string,
   cssFunctionName: string | null,
-  options?: { devMode?: boolean },
+  options?: { devMode?: boolean; prefix?: string },
 ) {
   let shouldUseClient = false
   file.forEachDescendant((node) => {
@@ -48,7 +50,8 @@ export function compileStyledFunction(
     const classNameHash = generateClassNameHash(
       relativeFilePath + node.getStartLineNumber() + cssString,
     )
-    const className = `ss-${classNameHash}`
+    const prefix = options?.devMode ? options?.prefix || DEFAULT_PREFIX : ''
+    const className = [prefix, classNameHash].filter(Boolean).join('-')
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
@@ -76,7 +79,11 @@ export function compileStyledFunction(
       const fileBaseNameWithoutExtension = file.getBaseNameWithoutExtension()
       const componentName = getVariableDeclarationName(node)
       hintClassNameByFileName =
-        [fileBaseNameWithoutExtension, componentName].join('__') + '-ss'
+        [fileBaseNameWithoutExtension, componentName]
+          .filter(Boolean)
+          .join('__') +
+        '-' +
+        prefix
     }
 
     node.replaceWithText(`

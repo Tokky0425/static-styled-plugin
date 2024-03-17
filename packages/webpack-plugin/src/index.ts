@@ -6,16 +6,19 @@ import { themeRegistry } from '@static-styled-plugin/compiler'
 
 type Options = {
   themeFilePath?: string
+  prefix?: string
 }
 
 const pluginName = 'StaticStyledPlugin'
 export class StaticStyledPlugin {
   themeFilePath: string | null
+  prefix?: string
 
   constructor(options?: Options) {
     this.themeFilePath = options?.themeFilePath
       ? path.join(process.cwd(), options.themeFilePath)
       : null
+    this.prefix = options?.prefix
   }
   apply(compiler: Compiler) {
     if (this.themeFilePath && !fs.existsSync(this.themeFilePath)) {
@@ -39,6 +42,7 @@ export class StaticStyledPlugin {
             options: {
               themeFilePath: this.themeFilePath,
               devMode: compiler.options.mode === 'development',
+              prefix: this.prefix,
             },
           },
         ],

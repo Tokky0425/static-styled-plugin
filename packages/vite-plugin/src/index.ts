@@ -10,6 +10,7 @@ import {
 
 type Options = {
   themeFilePath?: string
+  prefix?: string
 }
 
 export function staticStyled(options?: Options): Plugin {
@@ -23,6 +24,7 @@ export function staticStyled(options?: Options): Plugin {
   const themeFilePath = options?.themeFilePath
     ? path.join(process.cwd(), options.themeFilePath)
     : null
+  const prefix = options?.prefix
 
   return {
     name: 'static-styled',
@@ -52,7 +54,7 @@ export function staticStyled(options?: Options): Plugin {
         useClientExpressionExtracted,
         hasReactImportStatement,
         shouldUseClient,
-      } = compile(sourceCode, id, { devMode })
+      } = compile(sourceCode, id, { devMode, prefix })
       const useClientExpression =
         useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
       const cssString = styleRegistry.getRule()
