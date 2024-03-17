@@ -38,8 +38,14 @@ export function compileStyledFunction(
       return
     }
 
+    const processDir = process.cwd()
+    const fileDir = file.getDirectoryPath()
+    const relativeFileDir = fileDir.replace(processDir, '')
+    const relativeFilePath = `${relativeFileDir}/${file.getBaseName()}`
     const cssString = result.replace(/\s+/g, ' ').trim()
-    const classNameHash = generateClassNameHash(cssString)
+    const classNameHash = generateClassNameHash(
+      relativeFilePath + node.getStartLineNumber() + cssString,
+    )
     const className = `static-styled-${classNameHash}`
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
