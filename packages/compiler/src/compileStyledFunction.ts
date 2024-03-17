@@ -48,7 +48,7 @@ export function compileStyledFunction(
     const classNameHash = generateClassNameHash(
       relativeFilePath + node.getStartLineNumber() + cssString,
     )
-    const className = `static-styled-${classNameHash}`
+    const className = `ss-${classNameHash}`
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
@@ -73,11 +73,10 @@ export function compileStyledFunction(
 
     let hintClassNameByFileName = ''
     if (options?.devMode) {
+      const fileBaseNameWithoutExtension = file.getBaseNameWithoutExtension()
       const componentName = getVariableDeclarationName(node)
-      hintClassNameByFileName = [
-        `static-styled__${fileBaseName}`,
-        componentName,
-      ].join('__')
+      hintClassNameByFileName =
+        [fileBaseNameWithoutExtension, componentName].join('__') + '-ss'
     }
 
     node.replaceWithText(`
