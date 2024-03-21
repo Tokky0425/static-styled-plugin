@@ -1,6 +1,6 @@
 {
   "name": "@static-styled-plugin/compiler",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A plugin that makes styled-components zero-runtime.",
   "repository": {
     "type": "git",
