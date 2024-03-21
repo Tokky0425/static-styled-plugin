@@ -14,9 +14,10 @@ const virtualCssPath = (() => {
 const loader: LoaderDefinitionFunction<{
   themeFilePath: string | null
   devMode: boolean
+  prefix?: string
 }> = function (sourceCode: string) {
   const options = this.getOptions()
-  const { themeFilePath, devMode } = options
+  const { themeFilePath, devMode, prefix } = options
 
   if (themeFilePath) {
     // recompile whenever theme file changes
@@ -28,7 +29,7 @@ const loader: LoaderDefinitionFunction<{
     useClientExpressionExtracted,
     hasReactImportStatement,
     shouldUseClient,
-  } = compile(sourceCode, this.resourcePath)
+  } = compile(sourceCode, this.resourcePath, { devMode, prefix })
 
   const useClientExpression =
     useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''

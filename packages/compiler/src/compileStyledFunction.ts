@@ -1,15 +1,18 @@
-import { Node, SourceFile } from 'ts-morph'
+import { Node, SourceFile, TaggedTemplateExpression } from 'ts-morph'
 import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
-import { generateHash } from './generateHash'
+import { generateClassNameHash } from './generateClassNameHash'
 import { compileCssString } from './compileCssString'
 import { Evaluator, TsEvalError } from './Evaluator'
 import { themeRegistry } from './themeRegistry'
+
+const DEFAULT_PREFIX = 'ss'
 
 export function compileStyledFunction(
   file: SourceFile,
   styledFunctionName: string,
   cssFunctionName: string | null,
+  options?: { devMode?: boolean; prefix?: string },
 ) {
   let shouldUseClient = false
   file.forEachDescendant((node) => {
@@ -38,9 +41,17 @@ export function compileStyledFunction(
       return
     }
 
+    const processDir = process.cwd()
+    const fileDir = file.getDirectoryPath()
+    const relativeFileDir = fileDir.replace(processDir, '')
+    const fileBaseName = file.getBaseName()
+    const relativeFilePath = `${relativeFileDir}/${fileBaseName}`
     const cssString = result.replace(/\s+/g, ' ').trim()
-    const classNameHash = generateHash(cssString)
-    const className = `static-styled-${classNameHash}`
+    const classNameHash = generateClassNameHash(
+      relativeFilePath + node.getStartLineNumber() + cssString,
+    )
+    const prefix = options?.devMode ? options?.prefix || DEFAULT_PREFIX : ''
+    const className = [prefix, classNameHash].filter(Boolean).join('-')
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
@@ -63,17 +74,37 @@ export function compileStyledFunction(
       })
       .join(', ')
 
+    let hintClassNameByFileName = ''
+    if (options?.devMode) {
+      const fileBaseNameWithoutExtension = file.getBaseNameWithoutExtension()
+      const componentName = getVariableDeclarationName(node)
+      hintClassNameByFileName =
+        [fileBaseNameWithoutExtension, componentName]
+          .filter(Boolean)
+          .join('__') +
+        '-' +
+        prefix
+    }
+
     node.replaceWithText(`
     (props: any) => {
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} } as any
       const propsWithAttrs = { ...props, ...attrsProps } as any
-      const joinedClassName = ['${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
+      const joinedClassName = ['${hintClassNameByFileName}', '${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
       return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
   `)
   })
   return shouldUseClient
+}
+
+function getVariableDeclarationName(node: TaggedTemplateExpression) {
+  const parent = node.getParent()
+  if (Node.isVariableDeclaration(parent)) {
+    return parent.getName()
+  }
+  return ''
 }
 
 type ParseTaggedTemplateExpressionResult = {

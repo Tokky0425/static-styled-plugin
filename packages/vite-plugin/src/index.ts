@@ -10,6 +10,7 @@ import {
 
 type Options = {
   themeFilePath?: string
+  prefix?: string
 }
 
 export function staticStyled(options?: Options): Plugin {
@@ -23,6 +24,7 @@ export function staticStyled(options?: Options): Plugin {
   const themeFilePath = options?.themeFilePath
     ? path.join(process.cwd(), options.themeFilePath)
     : null
+  const prefix = options?.prefix
 
   return {
     name: 'static-styled',
@@ -45,13 +47,14 @@ export function staticStyled(options?: Options): Plugin {
     transform(sourceCode, id) {
       if (/node_modules/.test(id)) return
       if (!/\/.+?\.tsx$/.test(id)) return
+      const devMode = command === 'serve'
 
       const {
         code,
         useClientExpressionExtracted,
         hasReactImportStatement,
         shouldUseClient,
-      } = compile(sourceCode, id)
+      } = compile(sourceCode, id, { devMode, prefix })
       const useClientExpression =
         useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
       const cssString = styleRegistry.getRule()
@@ -62,7 +65,7 @@ export function staticStyled(options?: Options): Plugin {
         ? ''
         : 'import React from "react";\n'
 
-      if (command === 'serve') {
+      if (devMode) {
         // Manually injecting style tag by injectDevelopmentCSS
         // Reason: Vite injects style tag at the end of head tag when HMR occurs, but style tag by styled-components should come last
         const rootRelativeFilePath = path.relative(process.cwd() + '/src', id)

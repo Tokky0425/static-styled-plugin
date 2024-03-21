@@ -4,6 +4,7 @@ import { StaticStyledPlugin } from '@static-styled-plugin/webpack-plugin'
 
 type Options = {
   themeFilePath?: string
+  prefix?: string
 }
 
 export function withStaticStyled(options: Options) {
