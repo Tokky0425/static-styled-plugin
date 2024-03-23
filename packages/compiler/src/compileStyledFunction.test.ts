@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { Project, SyntaxKind, TaggedTemplateExpression } from 'ts-morph'
+import { Project, SyntaxKind } from 'ts-morph'
 import {
   getAttrs,
   parseTaggedTemplateExpression,
@@ -7,15 +7,13 @@ import {
 
 const project = new Project()
 
-describe('getTagName', () => {
+describe('parseTaggedTemplateExpression', () => {
   const getTargetNode = (code: string) => {
     const file = project.createSourceFile('virtual.ts', code, {
       overwrite: true,
     })
-    const node = file.getFirstDescendant(
-      (node) => node.getKind() === SyntaxKind.TaggedTemplateExpression,
-    ) as TaggedTemplateExpression
-    return node.getTag()
+    const nodes = file.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression)
+    return nodes.at(-1).getTag()
   }
 
   describe('PropertyAccessExpression', () => {
@@ -162,10 +160,8 @@ describe('getAttrs', () => {
     const file = project.createSourceFile('virtual.ts', code, {
       overwrite: true,
     })
-    const node = file.getFirstDescendant(
-      (node) => node.getKind() === SyntaxKind.TaggedTemplateExpression,
-    ) as TaggedTemplateExpression
-    return node.getTag()
+    const nodes = file.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression)
+    return nodes.at(-1).getTag()
   }
 
   test('no attrs', () => {
