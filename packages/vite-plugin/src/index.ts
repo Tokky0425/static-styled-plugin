@@ -9,6 +9,7 @@ import {
 } from '@static-styled-plugin/compiler'
 
 type Options = {
+  tsConfigFilePath?: string
   themeFilePath?: string
   prefix?: string
 }
@@ -21,9 +22,12 @@ export function staticStyled(options?: Options): Plugin {
     [cssAbsolutePath: string]: string
   } = {}
   let command: ResolvedConfig['command']
-  const themeFilePath = options?.themeFilePath
-    ? path.join(process.cwd(), options.themeFilePath)
-    : null
+  const warnings: string[] = []
+  const tsConfigFilePath = buildTsConfigFilePath(
+    warnings,
+    options?.tsConfigFilePath,
+  )
+  const themeFilePath = buildThemeFilePath(warnings, options?.themeFilePath)
   const prefix = options?.prefix
 
   return {
@@ -31,18 +35,13 @@ export function staticStyled(options?: Options): Plugin {
     enforce: 'pre',
     configResolved(config) {
       if (themeFilePath) {
-        // enable rebuild when theme file changes
+        // enable rebuild when theme file and ts-config.json changes
+        config.configFileDependencies.push(tsConfigFilePath)
         config.configFileDependencies.push(themeFilePath)
-        if (!fs.existsSync(themeFilePath)) {
-          console.log(
-            `[static-styled-plugin] ` +
-              chalk.hex('#000080').bgYellow(' WARN ') +
-              ` Theme file path is specified but the file was not found.`,
-          )
-        }
       }
       themeRegistry.register(themeFilePath)
       command = config.command
+      warnings.forEach((warning) => console.log(warning))
     },
     transform(sourceCode, id) {
       if (/node_modules/.test(id)) return
@@ -54,7 +53,7 @@ export function staticStyled(options?: Options): Plugin {
         useClientExpressionExtracted,
         hasReactImportStatement,
         shouldUseClient,
-      } = compile(sourceCode, id, { devMode, prefix })
+      } = compile(sourceCode, id, { devMode, tsConfigFilePath, prefix })
       const useClientExpression =
         useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
       const cssString = styleRegistry.getRule()
@@ -124,4 +123,28 @@ const injectDevelopmentCSS = (cssString: string, cssFilePath: string) => {
     staticStyledEle.textContent = ${JSON.stringify(cssString)};
   })();
   `
+}
+
+function buildTsConfigFilePath(warnings: string[], tsConfigFilePath?: string) {
+  const result = path.join(process.cwd(), tsConfigFilePath ?? 'tsconfig.json')
+  if (!fs.existsSync(result)) {
+    warnings.push(
+      `[static-styled-plugin] ` +
+        chalk.hex('#000080').bgYellow(' WARN ') +
+        ` TS config file (${tsConfigFilePath}) was not found.`,
+    )
+  }
+  return result
+}
+
+function buildThemeFilePath(warnings: string[], themeFilePath?: string) {
+  const result = themeFilePath ? path.join(process.cwd(), themeFilePath) : null
+  if (result && !fs.existsSync(result)) {
+    warnings.push(
+      `[static-styled-plugin] ` +
+        chalk.hex('#000080').bgYellow(' WARN ') +
+        ` Theme file path is specified but the file was not found.`,
+    )
+  }
+  return result
 }

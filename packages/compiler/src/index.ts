@@ -12,9 +12,11 @@ export { themeRegistry } from './themeRegistry'
 export function compile(
   code: string,
   filePath: string,
-  options?: { devMode?: boolean; prefix?: string },
+  options?: { devMode?: boolean; tsConfigFilePath?: string; prefix?: string },
 ) {
-  const project = new Project()
+  const project = new Project({
+    tsConfigFilePath: options?.tsConfigFilePath,
+  })
   const file = project.createSourceFile(filePath, code, { overwrite: true })
   const styledFunctionName = getStyledFunctionName(file)
   if (!styledFunctionName) return { code: file.getFullText() }

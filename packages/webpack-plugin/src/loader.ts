@@ -12,15 +12,17 @@ const virtualCssPath = (() => {
 })()
 
 const loader: LoaderDefinitionFunction<{
+  tsConfigFilePath: string
   themeFilePath: string | null
   devMode: boolean
   prefix?: string
 }> = function (sourceCode: string) {
   const options = this.getOptions()
-  const { themeFilePath, devMode, prefix } = options
+  const { tsConfigFilePath, themeFilePath, devMode, prefix } = options
 
   if (themeFilePath) {
-    // recompile whenever theme file changes
+    // recompile whenever theme file and tsconfig.json changes
+    this.addDependency(tsConfigFilePath)
     this.addDependency(themeFilePath)
   }
 
@@ -29,7 +31,11 @@ const loader: LoaderDefinitionFunction<{
     useClientExpressionExtracted,
     hasReactImportStatement,
     shouldUseClient,
-  } = compile(sourceCode, this.resourcePath, { devMode, prefix })
+  } = compile(sourceCode, this.resourcePath, {
+    devMode,
+    tsConfigFilePath,
+    prefix,
+  })
 
   const useClientExpression =
     useClientExpressionExtracted || shouldUseClient ? '"use client";\n' : ''
