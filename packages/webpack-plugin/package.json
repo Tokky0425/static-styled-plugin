@@ -11,7 +11,7 @@
     "dev": "tsc -w",
     "build": "tsc"
   },
-  "keywords": [],
+  "keywords": ["static-styled-plugin", "styled-components", "react", "webpack"],
   "author": "Tokky0425",
   "license": "MIT",
   "files": [
