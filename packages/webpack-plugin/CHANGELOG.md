@@ -1,5 +1,16 @@
 # @static-styled-plugin/webpack-plugin
 
+## 0.2.0
+
+### Minor Changes
+
+- as API for styled-components is now supported.
+
+### Patch Changes
+
+- Updated dependencies
+  - @static-styled-plugin/compiler@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes
