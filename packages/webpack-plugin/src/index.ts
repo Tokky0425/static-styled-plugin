@@ -5,29 +5,28 @@ import type { Compiler } from 'webpack'
 import { themeRegistry } from '@static-styled-plugin/compiler'
 
 type Options = {
+  tsConfigFilePath?: string
   themeFilePath?: string
   prefix?: string
 }
 
 const pluginName = 'StaticStyledPlugin'
 export class StaticStyledPlugin {
+  tsConfigFilePath: string
   themeFilePath: string | null
   prefix?: string
+  warnings: string[]
 
   constructor(options?: Options) {
-    this.themeFilePath = options?.themeFilePath
-      ? path.join(process.cwd(), options.themeFilePath)
-      : null
+    this.warnings = []
+    this.tsConfigFilePath = this.buildTsConfigFilePath(
+      options?.tsConfigFilePath,
+    )
+    this.themeFilePath = this.buildThemeFilePath(options?.themeFilePath)
     this.prefix = options?.prefix
   }
   apply(compiler: Compiler) {
-    if (this.themeFilePath && !fs.existsSync(this.themeFilePath)) {
-      console.log(
-        `[static-styled-plugin] ` +
-          chalk.hex('#000080').bgYellow(' WARN ') +
-          ` Theme file path is specified but the file was not found.`,
-      )
-    }
+    this.warnings.forEach((warning) => console.log(warning))
 
     compiler.hooks.beforeCompile.tap(pluginName, () => {
       themeRegistry.register(this.themeFilePath)
@@ -40,6 +39,7 @@ export class StaticStyledPlugin {
           {
             loader: require.resolve('./loader'),
             options: {
+              tsConfigFilePath: this.tsConfigFilePath,
               themeFilePath: this.themeFilePath,
               devMode: compiler.options.mode === 'development',
               prefix: this.prefix,
@@ -56,5 +56,31 @@ export class StaticStyledPlugin {
         ],
       },
     )
+  }
+
+  private buildTsConfigFilePath(tsConfigFilePath?: string) {
+    const result = path.join(process.cwd(), tsConfigFilePath ?? 'tsconfig.json')
+    if (!fs.existsSync(result)) {
+      this.warnings.push(
+        `[static-styled-plugin] ` +
+          chalk.hex('#000080').bgYellow(' WARN ') +
+          ` TS config file (${tsConfigFilePath}) was not found.`,
+      )
+    }
+    return result
+  }
+
+  private buildThemeFilePath(themeFilePath?: string) {
+    const result = themeFilePath
+      ? path.join(process.cwd(), themeFilePath)
+      : null
+    if (result && !fs.existsSync(result)) {
+      this.warnings.push(
+        `[static-styled-plugin] ` +
+          chalk.hex('#000080').bgYellow(' WARN ') +
+          ` Theme file path is specified but the file was not found.`,
+      )
+    }
+    return result
   }
 }

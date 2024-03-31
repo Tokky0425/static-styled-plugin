@@ -1,4 +1,11 @@
-import { Node, SourceFile, TaggedTemplateExpression } from 'ts-morph'
+import {
+  CallExpression,
+  Node,
+  PropertyAccessExpression,
+  SourceFile,
+  SyntaxKind,
+  TaggedTemplateExpression,
+} from 'ts-morph'
 import { styleRegistry } from './styleRegistry'
 import { isHTMLTag } from './isHTMLTag'
 import { generateClassNameHash } from './generateClassNameHash'
@@ -15,38 +22,31 @@ export function compileStyledFunction(
   options?: { devMode?: boolean; prefix?: string },
 ) {
   let shouldUseClient = false
+  const replaceTargetMeta: Array<{ node: Node; replaceText: string }> = []
+
+  const evaluator = new Evaluator({
+    extra: {},
+    definition: { styledFunctionName, cssFunctionName },
+    theme: themeRegistry.getTheme(),
+  })
+
   file.forEachDescendant((node) => {
-    if (!Node.isTaggedTemplateExpression(node)) return
-
-    const tagNode = node.getTag()
-    const { htmlTagName, isStyledFunction } = parseTaggedTemplateExpression(
-      tagNode,
-      styledFunctionName,
-    )
-    if (!isStyledFunction) {
-      return
-    } else if (!htmlTagName || !isHTMLTag(htmlTagName)) {
-      shouldUseClient = true
+    const nodeResult = parseNode(node, evaluator)
+    if (!nodeResult.success) {
+      shouldUseClient = !shouldUseClient
+        ? nodeResult.shouldUseClient
+        : shouldUseClient
       return
     }
 
-    const evaluator = new Evaluator({
-      extra: {},
-      definition: { styledFunctionName, cssFunctionName },
-      theme: themeRegistry.getTheme(),
-    })
-    const result = evaluator.evaluateStyledTaggedTemplateExpression(node)
-    if (result === TsEvalError) {
-      shouldUseClient = true
-      return
-    }
+    const { componentName, htmlTagName, cssString, attrs } = nodeResult
+    if (componentName === null || htmlTagName === null) return // this should not happen
 
     const processDir = process.cwd()
     const fileDir = file.getDirectoryPath()
     const relativeFileDir = fileDir.replace(processDir, '')
     const fileBaseName = file.getBaseName()
     const relativeFilePath = `${relativeFileDir}/${fileBaseName}`
-    const cssString = result.replace(/\s+/g, ' ').trim()
     const classNameHash = generateClassNameHash(
       relativeFilePath + node.getStartLineNumber() + cssString,
     )
@@ -55,11 +55,10 @@ export function compileStyledFunction(
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
-    const attrsArr = getAttrs(tagNode)
-    const attrsDeclaration = attrsArr
+    const attrsDeclaration = attrs
       .map((attrs, index) => `const attrs${index} = ${attrs.text}`)
       .join('\n')
-    const attrsProps = attrsArr
+    const attrsProps = attrs
       .map((attrs, index) => {
         switch (attrs.nodeKindName) {
           case 'ArrowFunction':
@@ -77,7 +76,6 @@ export function compileStyledFunction(
     let hintClassNameByFileName = ''
     if (options?.devMode) {
       const fileBaseNameWithoutExtension = file.getBaseNameWithoutExtension()
-      const componentName = getVariableDeclarationName(node)
       hintClassNameByFileName =
         [fileBaseNameWithoutExtension, componentName]
           .filter(Boolean)
@@ -85,8 +83,7 @@ export function compileStyledFunction(
         '-' +
         prefix
     }
-
-    node.replaceWithText(`
+    const replaceText = `
     (props: any) => {
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} } as any
@@ -94,9 +91,101 @@ export function compileStyledFunction(
       const joinedClassName = ['${hintClassNameByFileName}', '${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
       return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
     }
-  `)
+  `
+
+    replaceTargetMeta.push({
+      node,
+      replaceText,
+    })
   })
+
+  replaceTargetMeta.forEach(({ node, replaceText }) => {
+    node.replaceWithText(replaceText)
+  })
+
   return shouldUseClient
+}
+
+type ParseNodeResult = {
+  success: boolean
+  componentName: string | null
+  htmlTagName: string | null
+  cssString: string
+  attrs: GetAttrsResult[]
+  shouldUseClient: boolean
+}
+const defaultParseNodeResult: ParseNodeResult = {
+  success: false,
+  componentName: null,
+  htmlTagName: null,
+  cssString: '',
+  attrs: [],
+  shouldUseClient: false,
+}
+function parseNode(
+  node: Node,
+  evaluator: Evaluator,
+  descendantResult: ParseNodeResult = defaultParseNodeResult,
+): ParseNodeResult {
+  if (!Node.isTaggedTemplateExpression(node)) return defaultParseNodeResult
+
+  const tagNode = node.getTag()
+  const styledExpression = getStyledExpression(tagNode, 'styled') // TODO あとでなんとかする
+  if (!styledExpression) return defaultParseNodeResult
+
+  const styledFuncArg = getStyledFuncArg(styledExpression)
+  if (/* e.g. styled() */ styledFuncArg === null) {
+    return { ...defaultParseNodeResult, shouldUseClient: true }
+  }
+
+  const componentName =
+    descendantResult.componentName ?? getVariableDeclarationName(node)
+  const evaluatedCssString =
+    evaluator.evaluateStyledTaggedTemplateExpression(node)
+  if (evaluatedCssString === TsEvalError) {
+    return { ...defaultParseNodeResult, shouldUseClient: true }
+  }
+  const attrs = getAttrs(tagNode)
+
+  if (typeof styledFuncArg === 'string') {
+    /* e.g. styled('p') or styled.p */
+    if (!isHTMLTag(styledFuncArg)) {
+      return { ...defaultParseNodeResult, shouldUseClient: true }
+    }
+    return {
+      success: true,
+      componentName: descendantResult.componentName ?? componentName,
+      htmlTagName: styledFuncArg,
+      cssString: evaluatedCssString.replace(/\s+/g, ' ').trim(),
+      attrs,
+      shouldUseClient: false,
+    }
+  } else {
+    /* e.g. styled(Foo) */
+    const definitionNodes = styledFuncArg.getDefinitionNodes()
+    const definitionNode: Node | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+
+    if (!definitionNode) return defaultParseNodeResult
+    const variableDeclarationNode = Node.isVariableDeclaration(definitionNode)
+      ? definitionNode
+      : definitionNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)
+    if (!variableDeclarationNode) return defaultParseNodeResult
+    const initializer = variableDeclarationNode.getInitializer()
+    if (!Node.isTaggedTemplateExpression(initializer))
+      return defaultParseNodeResult
+
+    const result = parseNode(initializer, evaluator, descendantResult)
+    if (!result.success) return result
+
+    return {
+      success: true,
+      componentName: componentName,
+      htmlTagName: result.htmlTagName,
+      cssString: result.cssString + evaluatedCssString,
+      attrs: [...result.attrs, ...attrs],
+      shouldUseClient: false,
+    }
+  }
 }
 
 function getVariableDeclarationName(node: TaggedTemplateExpression) {
@@ -104,53 +193,43 @@ function getVariableDeclarationName(node: TaggedTemplateExpression) {
   if (Node.isVariableDeclaration(parent)) {
     return parent.getName()
   }
-  return ''
+  return null
 }
 
-type ParseTaggedTemplateExpressionResult = {
-  htmlTagName: string | null
-  isStyledFunction: boolean
-}
-
-export function parseTaggedTemplateExpression(
+export function getStyledExpression(
   node: Node,
   styledFunctionName: string,
-): ParseTaggedTemplateExpressionResult {
-  const result: ParseTaggedTemplateExpressionResult = {
-    htmlTagName: null,
-    isStyledFunction: false,
-  }
+): CallExpression | PropertyAccessExpression | null {
   if (
-    /* e.g. styled('p') */ Node.isCallExpression(node) &&
-    node.compilerNode.expression.getText() === styledFunctionName
+    /* e.g. styled('p') */ Node.isCallExpression(node) ||
+    /* e.g. styled.p */ Node.isPropertyAccessExpression(node)
   ) {
-    const arg = node.getArguments()[0]
-    result.htmlTagName = Node.isStringLiteral(arg)
-      ? arg.getLiteralValue()
-      : null
-    result.isStyledFunction = true
-  } else if (
-    /* e.g. styled.p */ Node.isPropertyAccessExpression(node) &&
-    node.compilerNode.expression.getText() === styledFunctionName
-  ) {
-    result.htmlTagName = node.compilerNode.name.getText() ?? null
-    result.isStyledFunction = true
-  } else if (
-    Node.isCallExpression(node) ||
-    Node.isPropertyAccessExpression(node)
-  ) {
+    if (node.getExpression().getText() === styledFunctionName) {
+      return node
+    }
     // for when .attrs is used
     const expression = node.getExpression()
-    if (
-      Node.isCallExpression(expression) ||
-      Node.isPropertyAccessExpression(expression)
-    ) {
-      const res = parseTaggedTemplateExpression(expression, styledFunctionName)
-      result.htmlTagName = res.htmlTagName
-      result.isStyledFunction = res.isStyledFunction
-    }
+    return getStyledExpression(expression, styledFunctionName)
   }
-  return result
+  return null
+}
+
+export function getStyledFuncArg(
+  node: CallExpression | PropertyAccessExpression,
+) {
+  if (Node.isCallExpression(node)) {
+    const arg = node.getArguments()[0]
+    if (Node.isStringLiteral(arg)) {
+      return arg.getLiteralValue()
+    } else if (Node.isIdentifier(arg)) {
+      return arg
+    } else {
+      return null
+    }
+  } else if (Node.isPropertyAccessExpression(node)) {
+    return node.getName()
+  }
+  return null
 }
 
 type GetAttrsResult = {

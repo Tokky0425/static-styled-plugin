@@ -1,159 +1,131 @@
 import { describe, expect, test } from 'vitest'
-import { Project, SyntaxKind, TaggedTemplateExpression } from 'ts-morph'
+import {
+  CallExpression,
+  Node,
+  Project,
+  SyntaxKind,
+  PropertyAccessExpression,
+} from 'ts-morph'
 import {
   getAttrs,
-  parseTaggedTemplateExpression,
+  getStyledExpression,
+  getStyledFuncArg,
 } from './compileStyledFunction'
 
 const project = new Project()
 
-describe('getTagName', () => {
-  const getTargetNode = (code: string) => {
-    const file = project.createSourceFile('virtual.ts', code, {
-      overwrite: true,
-    })
-    const node = file.getFirstDescendant(
-      (node) => node.getKind() === SyntaxKind.TaggedTemplateExpression,
-    ) as TaggedTemplateExpression
-    return node.getTag()
+const getLastNodeByName = (value: string, targetName: string): Node => {
+  const file = project.createSourceFile('virtual.ts', value, {
+    overwrite: true,
+  })
+  const nodes = file.getDescendants()
+  let node
+
+  for (const nodeElement of nodes) {
+    if (nodeElement.getText() === targetName) {
+      node = nodeElement
+    }
   }
 
-  describe('PropertyAccessExpression', () => {
-    test('', () => {
-      const value = `
+  return node as Node
+}
+
+describe('getStyledExpression', () => {
+  test('styled.p', () => {
+    const value = `
         const Text = styled.p\`\`
       `
-      const result = parseTaggedTemplateExpression(
-        getTargetNode(value),
-        'styled',
-      )
-      expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
-    })
-
-    describe('with attrs', () => {
-      test('taking object', () => {
-        const value = `
-          const Text = styled.p.attrs({})\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-      test('taking function', () => {
-        const value = `
-          const Text = styled.p.attrs(() => ({}))\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-      test('chained', () => {
-        const value = `
-          const Text = styled.p.attrs({}).attrs(() => ({}))\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-    })
-
-    test('non existing html tag', () => {
-      const value = `
-        const Text = styled.foo\`\`
-      `
-      const result = parseTaggedTemplateExpression(
-        getTargetNode(value),
-        'styled',
-      )
-      expect(result).toStrictEqual({
-        htmlTagName: 'foo',
-        isStyledFunction: true,
-      })
-    })
+    const result = getStyledExpression(
+      getLastNodeByName(value, 'styled.p'),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('PropertyAccessExpression')
   })
-
-  describe('CallExpression', () => {
-    test('', () => {
-      const value = `
+  test('styled.p', () => {
+    const value = `
+        const Text = styled.p\`\`
+      `
+    const result = getStyledExpression(
+      getLastNodeByName(value, 'styled.p'),
+      'myStyled',
+    )
+    expect(result).toBe(null)
+  })
+  test('styled.p.attrs({})', () => {
+    const value = `
+        const Text = styled.p.attrs({})\`\`
+      `
+    const result = getStyledExpression(
+      getLastNodeByName(value, 'styled.p.attrs({})'),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('PropertyAccessExpression')
+  })
+  test("styled('p')", () => {
+    const value = `
         const Text = styled('p')\`\`
       `
-      const result = parseTaggedTemplateExpression(
-        getTargetNode(value),
-        'styled',
-      )
-      expect(result).toStrictEqual({ htmlTagName: 'p', isStyledFunction: true })
-    })
+    const result = getStyledExpression(
+      getLastNodeByName(value, "styled('p')"),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('CallExpression')
+  })
+  test("styled('p').attrs({})", () => {
+    const value = `
+        const Text = styled('p').attrs({})\`\`
+      `
+    const result = getStyledExpression(
+      getLastNodeByName(value, "styled('p').attrs({})"),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('CallExpression')
+  })
+  test('styled(Foo)', () => {
+    const value = `
+        const Text = styled(Foo)\`\`
+      `
+    const result = getStyledExpression(
+      getLastNodeByName(value, 'styled(Foo)'),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('CallExpression')
+  })
+  test('styled(Foo).attrs({})', () => {
+    const value = `
+        const Text = styled(Foo).attrs({})\`\`
+      `
+    const result = getStyledExpression(
+      getLastNodeByName(value, 'styled(Foo).attrs({})'),
+      'styled',
+    )
+    expect(result?.getKindName()).toBe('CallExpression')
+  })
+})
 
-    describe('attrs', () => {
-      test('attrs taking object', () => {
-        const value = `
-          const Text = styled('p').attrs({})\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-      test('taking function', () => {
-        const value = `
-          const Text = styled('p').attrs(() => ({}))\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-      test('chained', () => {
-        const value = `
-          const Text = styled('p').attrs({}).attrs(() => ({}))\`\`
-        `
-        const result = parseTaggedTemplateExpression(
-          getTargetNode(value),
-          'styled',
-        )
-        expect(result).toStrictEqual({
-          htmlTagName: 'p',
-          isStyledFunction: true,
-        })
-      })
-    })
+describe('getStyledFuncArg', () => {
+  type ResultType = CallExpression | PropertyAccessExpression
 
-    test('non existing html tag', () => {
-      const value = `
+  test('styled.p', () => {
+    const value = `
+        const Text = styled.p\`\`
+      `
+    const result = getLastNodeByName(value, 'styled.p') as ResultType
+    expect(getStyledFuncArg(result)).toBe('p')
+  })
+  test("styled('foo')", () => {
+    const value = `
         const Text = styled('foo')\`\`
       `
-      const result = parseTaggedTemplateExpression(
-        getTargetNode(value),
-        'styled',
-      )
-      expect(result).toStrictEqual({
-        htmlTagName: 'foo',
-        isStyledFunction: true,
-      })
-    })
+    const result = getLastNodeByName(value, "styled('foo')") as ResultType
+    expect(getStyledFuncArg(result)).toBe('foo')
+  })
+  test("styled('p')", () => {
+    const value = `
+        const Text = styled('p')\`\`
+      `
+    const result = getLastNodeByName(value, "styled('p')") as ResultType
+    expect(getStyledFuncArg(result)).toBe('p')
   })
 })
 
@@ -162,10 +134,8 @@ describe('getAttrs', () => {
     const file = project.createSourceFile('virtual.ts', code, {
       overwrite: true,
     })
-    const node = file.getFirstDescendant(
-      (node) => node.getKind() === SyntaxKind.TaggedTemplateExpression,
-    ) as TaggedTemplateExpression
-    return node.getTag()
+    const nodes = file.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression)
+    return nodes.at(-1).getTag()
   }
 
   test('no attrs', () => {

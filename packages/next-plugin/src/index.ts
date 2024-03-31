@@ -3,6 +3,7 @@ import type { Configuration } from 'webpack'
 import { StaticStyledPlugin } from '@static-styled-plugin/webpack-plugin'
 
 type Options = {
+  tsConfigFilePath?: string
   themeFilePath?: string
   prefix?: string
 }
