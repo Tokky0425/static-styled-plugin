@@ -86,13 +86,24 @@ export function compileStyledFunction(
         '-' +
         prefix
     }
+    /**
+     * NOTE: forwardedAs is extracted from props but not used.
+     * reason:
+     * - forwardedAs works only when the component is extended from another non-styled-components component
+     *   e.g. const MyComponent = styled(AnotherComponent).attrs({ forwardedAs: 'span' })``
+     *        const AnotherComponent = (props) => <div {...props} />
+     * - but static-styled does not handle the case above
+     * - in other words, forwardedAs here should be an improper usage
+     * - so, just ignoring it is fine
+     */
     const replaceText = `
     (props: any) => {
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} } as any
-      const propsWithAttrs = { ...props, ...attrsProps } as any
+      const { as, forwardedAs, ...rest } = { ...props, ...attrsProps } as any
+      const Tag = as || '${htmlTagName}'
       const joinedClassName = ['${hintClassNameByFileName}', '${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
-      return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
+      return <Tag { ...rest } className={joinedClassName} />;
     }
   `
 
