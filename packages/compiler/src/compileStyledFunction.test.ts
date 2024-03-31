@@ -7,7 +7,7 @@ import {
   PropertyAccessExpression,
 } from 'ts-morph'
 import {
-  getAttrs,
+  getAttrsArgs,
   getStyledExpression,
   getStyledFuncArg,
 } from './compileStyledFunction'
@@ -129,7 +129,7 @@ describe('getStyledFuncArg', () => {
   })
 })
 
-describe('getAttrs', () => {
+describe('getAttrsArgs', () => {
   const getTargetNode = (code: string) => {
     const file = project.createSourceFile('virtual.ts', code, {
       overwrite: true,
@@ -140,7 +140,7 @@ describe('getAttrs', () => {
 
   test('no attrs', () => {
     const value = 'const Text = styled.p``'
-    const result = getAttrs(getTargetNode(value))
+    const result = getAttrsArgs(getTargetNode(value))
     expect(result).toStrictEqual([])
   })
 
@@ -148,39 +148,27 @@ describe('getAttrs', () => {
     test('taking function', () => {
       const value =
         "const Text = styled.p.attrs(() => ({ className: 'foo' }))``"
-      const result = getAttrs(getTargetNode(value))
-      expect(result).toStrictEqual([
-        {
-          nodeKindName: 'ArrowFunction',
-          text: "() => ({ className: 'foo' })",
-        },
+      const result = getAttrsArgs(getTargetNode(value))
+      expect(result.map((arg) => arg.getText())).toStrictEqual([
+        "() => ({ className: 'foo' })",
       ])
     })
 
     test('taking object', () => {
       const value = "const Text = styled.p.attrs({ className: 'bar' })``"
-      const result = getAttrs(getTargetNode(value))
-      expect(result).toStrictEqual([
-        {
-          nodeKindName: 'ObjectLiteralExpression',
-          text: "{ className: 'bar' }",
-        },
+      const result = getAttrsArgs(getTargetNode(value))
+      expect(result.map((arg) => arg.getText())).toStrictEqual([
+        "{ className: 'bar' }",
       ])
     })
 
     test('chained', () => {
       const value =
         "const Text = styled.p.attrs(() => ({ className: 'foo' })).attrs({ style: { width: 100 } })``"
-      const result = getAttrs(getTargetNode(value))
-      expect(result).toStrictEqual([
-        {
-          nodeKindName: 'ArrowFunction',
-          text: "() => ({ className: 'foo' })",
-        },
-        {
-          nodeKindName: 'ObjectLiteralExpression',
-          text: '{ style: { width: 100 } }',
-        },
+      const result = getAttrsArgs(getTargetNode(value))
+      expect(result.map((arg) => arg.getText())).toStrictEqual([
+        "() => ({ className: 'foo' })",
+        '{ style: { width: 100 } }',
       ])
     })
   })

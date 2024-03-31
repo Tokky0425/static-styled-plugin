@@ -1,6 +1,8 @@
 import {
+  ArrowFunction,
   CallExpression,
   Node,
+  ObjectLiteralExpression,
   PropertyAccessExpression,
   SourceFile,
   SyntaxKind,
@@ -31,7 +33,7 @@ export function compileStyledFunction(
   })
 
   file.forEachDescendant((node) => {
-    const nodeResult = parseNode(node, evaluator)
+    const nodeResult = parseNode(node, evaluator, styledFunctionName)
     if (!nodeResult.success) {
       shouldUseClient = !shouldUseClient
         ? nodeResult.shouldUseClient
@@ -39,7 +41,7 @@ export function compileStyledFunction(
       return
     }
 
-    const { componentName, htmlTagName, cssString, attrs } = nodeResult
+    const { componentName, htmlTagName, cssString, attrsArgs } = nodeResult
     if (componentName === null || htmlTagName === null) return // this should not happen
 
     const processDir = process.cwd()
@@ -55,19 +57,20 @@ export function compileStyledFunction(
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
-    const attrsDeclaration = attrs
-      .map((attrs, index) => `const attrs${index} = ${attrs.text}`)
+    const attrsDeclaration = attrsArgs
+      .map((attrsArg, index) => `const attrs${index} = ${attrsArg.getText()}`)
       .join('\n')
-    const attrsProps = attrs
-      .map((attrs, index) => {
-        switch (attrs.nodeKindName) {
+    const attrsProps = attrsArgs
+      .map((attrsArg, index) => {
+        switch (attrsArg.getKindName()) {
           case 'ArrowFunction':
             return `...attrs${index}(props)`
           case 'ObjectLiteralExpression':
             return `...attrs${index}`
           default: {
-            const neverValue: never = attrs.nodeKindName
-            throw new Error(`${neverValue}`)
+            throw new Error(
+              'attrs only accepts ArrowFunction or ObjectLiteralExpression.',
+            )
           }
         }
       })
@@ -83,13 +86,24 @@ export function compileStyledFunction(
         '-' +
         prefix
     }
+    /**
+     * NOTE: forwardedAs is extracted from props but not used.
+     * reason:
+     * - forwardedAs works only when the component is extended from another non-styled-components component
+     *   e.g. const MyComponent = styled(AnotherComponent).attrs({ forwardedAs: 'span' })``
+     *        const AnotherComponent = (props) => <div {...props} />
+     * - but static-styled does not handle the case above
+     * - in other words, forwardedAs here should be an improper usage
+     * - so, just ignoring it is fine
+     */
     const replaceText = `
     (props: any) => {
       ${attrsDeclaration}
       const attrsProps = { ${attrsProps} } as any
-      const propsWithAttrs = { ...props, ...attrsProps } as any
+      const { as, forwardedAs, ...rest } = { ...props, ...attrsProps } as any
+      const Tag = as || '${htmlTagName}'
       const joinedClassName = ['${hintClassNameByFileName}', '${className}', attrsProps.className, props.className].filter(Boolean).join(' ')
-      return <${htmlTagName} { ...propsWithAttrs } className={joinedClassName} />;
+      return <Tag { ...rest } className={joinedClassName} />;
     }
   `
 
@@ -111,7 +125,7 @@ type ParseNodeResult = {
   componentName: string | null
   htmlTagName: string | null
   cssString: string
-  attrs: GetAttrsResult[]
+  attrsArgs: AttrsArg[]
   shouldUseClient: boolean
 }
 const defaultParseNodeResult: ParseNodeResult = {
@@ -119,18 +133,19 @@ const defaultParseNodeResult: ParseNodeResult = {
   componentName: null,
   htmlTagName: null,
   cssString: '',
-  attrs: [],
+  attrsArgs: [],
   shouldUseClient: false,
 }
 function parseNode(
   node: Node,
   evaluator: Evaluator,
+  styledFunctionName: string,
   descendantResult: ParseNodeResult = defaultParseNodeResult,
 ): ParseNodeResult {
   if (!Node.isTaggedTemplateExpression(node)) return defaultParseNodeResult
 
   const tagNode = node.getTag()
-  const styledExpression = getStyledExpression(tagNode, 'styled') // TODO あとでなんとかする
+  const styledExpression = getStyledExpression(tagNode, styledFunctionName)
   if (!styledExpression) return defaultParseNodeResult
 
   const styledFuncArg = getStyledFuncArg(styledExpression)
@@ -145,7 +160,7 @@ function parseNode(
   if (evaluatedCssString === TsEvalError) {
     return { ...defaultParseNodeResult, shouldUseClient: true }
   }
-  const attrs = getAttrs(tagNode)
+  const attrsArgs = getAttrsArgs(tagNode)
 
   if (typeof styledFuncArg === 'string') {
     /* e.g. styled('p') or styled.p */
@@ -157,7 +172,7 @@ function parseNode(
       componentName: descendantResult.componentName ?? componentName,
       htmlTagName: styledFuncArg,
       cssString: evaluatedCssString.replace(/\s+/g, ' ').trim(),
-      attrs,
+      attrsArgs,
       shouldUseClient: false,
     }
   } else {
@@ -174,7 +189,12 @@ function parseNode(
     if (!Node.isTaggedTemplateExpression(initializer))
       return defaultParseNodeResult
 
-    const result = parseNode(initializer, evaluator, descendantResult)
+    const result = parseNode(
+      initializer,
+      evaluator,
+      styledFunctionName,
+      descendantResult,
+    )
     if (!result.success) return result
 
     return {
@@ -182,7 +202,7 @@ function parseNode(
       componentName: componentName,
       htmlTagName: result.htmlTagName,
       cssString: result.cssString + evaluatedCssString,
-      attrs: [...result.attrs, ...attrs],
+      attrsArgs: [...result.attrsArgs, ...attrsArgs],
       shouldUseClient: false,
     }
   }
@@ -232,13 +252,9 @@ export function getStyledFuncArg(
   return null
 }
 
-type GetAttrsResult = {
-  nodeKindName: 'ArrowFunction' | 'ObjectLiteralExpression'
-  text: string
-}
-
-export function getAttrs(node: Node): GetAttrsResult[] {
-  let result: GetAttrsResult[] = []
+type AttrsArg = ArrowFunction | ObjectLiteralExpression
+export function getAttrsArgs(node: Node): AttrsArg[] {
+  let result: AttrsArg[] = []
 
   if (!Node.isCallExpression(node)) return result
   const expression = node.getExpression()
@@ -250,31 +266,20 @@ export function getAttrs(node: Node): GetAttrsResult[] {
   )
     return result
 
-  // recursively call getAttrs because attrs can be chained
+  // recursively call getAttrsArgs because attrs can be chained
   // e.g. const Text = styled.p.attrs().attrs()``
   const nextExpression = expression.getExpression()
-  const nextExpressionResult = getAttrs(nextExpression)
+  const nextExpressionResult = getAttrsArgs(nextExpression)
   if (nextExpressionResult) {
     result = [...nextExpressionResult]
   }
 
   const argument = node.getArguments()[0]
-  if (Node.isArrowFunction(argument)) {
-    return [
-      ...result,
-      {
-        nodeKindName: 'ArrowFunction' as const,
-        text: argument.getFullText(),
-      },
-    ]
-  } else if (Node.isObjectLiteralExpression(argument)) {
-    return [
-      ...result,
-      {
-        nodeKindName: 'ObjectLiteralExpression' as const,
-        text: argument.getFullText(),
-      },
-    ]
+  if (
+    Node.isArrowFunction(argument) ||
+    Node.isObjectLiteralExpression(argument)
+  ) {
+    return [...result, argument]
   } else {
     throw new Error('unexpected expression for attrs')
   }
