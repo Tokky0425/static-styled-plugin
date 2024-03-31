@@ -33,7 +33,7 @@ export function compileStyledFunction(
   })
 
   file.forEachDescendant((node) => {
-    const nodeResult = parseNode(node, evaluator)
+    const nodeResult = parseNode(node, evaluator, styledFunctionName)
     if (!nodeResult.success) {
       shouldUseClient = !shouldUseClient
         ? nodeResult.shouldUseClient
@@ -139,12 +139,13 @@ const defaultParseNodeResult: ParseNodeResult = {
 function parseNode(
   node: Node,
   evaluator: Evaluator,
+  styledFunctionName: string,
   descendantResult: ParseNodeResult = defaultParseNodeResult,
 ): ParseNodeResult {
   if (!Node.isTaggedTemplateExpression(node)) return defaultParseNodeResult
 
   const tagNode = node.getTag()
-  const styledExpression = getStyledExpression(tagNode, 'styled') // TODO あとでなんとかする
+  const styledExpression = getStyledExpression(tagNode, styledFunctionName)
   if (!styledExpression) return defaultParseNodeResult
 
   const styledFuncArg = getStyledFuncArg(styledExpression)
@@ -188,7 +189,12 @@ function parseNode(
     if (!Node.isTaggedTemplateExpression(initializer))
       return defaultParseNodeResult
 
-    const result = parseNode(initializer, evaluator, descendantResult)
+    const result = parseNode(
+      initializer,
+      evaluator,
+      styledFunctionName,
+      descendantResult,
+    )
     if (!result.success) return result
 
     return {
