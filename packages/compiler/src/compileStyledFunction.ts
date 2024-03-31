@@ -41,7 +41,7 @@ export function compileStyledFunction(
       return
     }
 
-    const { componentName, htmlTagName, cssString, attrs } = nodeResult
+    const { componentName, htmlTagName, cssString, attrsArgs } = nodeResult
     if (componentName === null || htmlTagName === null) return // this should not happen
 
     const processDir = process.cwd()
@@ -57,12 +57,12 @@ export function compileStyledFunction(
     const compiledCssString = compileCssString(cssString, className)
     styleRegistry.addRule(classNameHash, compiledCssString)
 
-    const attrsDeclaration = attrs
-      .map((attrs, index) => `const attrs${index} = ${attrs.getText()}`)
+    const attrsDeclaration = attrsArgs
+      .map((attrsArg, index) => `const attrs${index} = ${attrsArg.getText()}`)
       .join('\n')
-    const attrsProps = attrs
-      .map((attrs, index) => {
-        switch (attrs.getKindName()) {
+    const attrsProps = attrsArgs
+      .map((attrsArg, index) => {
+        switch (attrsArg.getKindName()) {
           case 'ArrowFunction':
             return `...attrs${index}(props)`
           case 'ObjectLiteralExpression':
@@ -114,7 +114,7 @@ type ParseNodeResult = {
   componentName: string | null
   htmlTagName: string | null
   cssString: string
-  attrs: AttrsArg[]
+  attrsArgs: AttrsArg[]
   shouldUseClient: boolean
 }
 const defaultParseNodeResult: ParseNodeResult = {
@@ -122,7 +122,7 @@ const defaultParseNodeResult: ParseNodeResult = {
   componentName: null,
   htmlTagName: null,
   cssString: '',
-  attrs: [],
+  attrsArgs: [],
   shouldUseClient: false,
 }
 function parseNode(
@@ -148,7 +148,7 @@ function parseNode(
   if (evaluatedCssString === TsEvalError) {
     return { ...defaultParseNodeResult, shouldUseClient: true }
   }
-  const attrs = getAttrs(tagNode)
+  const attrsArgs = getAttrsArgs(tagNode)
 
   if (typeof styledFuncArg === 'string') {
     /* e.g. styled('p') or styled.p */
@@ -160,7 +160,7 @@ function parseNode(
       componentName: descendantResult.componentName ?? componentName,
       htmlTagName: styledFuncArg,
       cssString: evaluatedCssString.replace(/\s+/g, ' ').trim(),
-      attrs,
+      attrsArgs,
       shouldUseClient: false,
     }
   } else {
@@ -185,7 +185,7 @@ function parseNode(
       componentName: componentName,
       htmlTagName: result.htmlTagName,
       cssString: result.cssString + evaluatedCssString,
-      attrs: [...result.attrs, ...attrs],
+      attrsArgs: [...result.attrsArgs, ...attrsArgs],
       shouldUseClient: false,
     }
   }
@@ -236,7 +236,7 @@ export function getStyledFuncArg(
 }
 
 type AttrsArg = ArrowFunction | ObjectLiteralExpression
-export function getAttrs(node: Node): AttrsArg[] {
+export function getAttrsArgs(node: Node): AttrsArg[] {
   let result: AttrsArg[] = []
 
   if (!Node.isCallExpression(node)) return result
@@ -249,10 +249,10 @@ export function getAttrs(node: Node): AttrsArg[] {
   )
     return result
 
-  // recursively call getAttrs because attrs can be chained
+  // recursively call getAttrsArgs because attrs can be chained
   // e.g. const Text = styled.p.attrs().attrs()``
   const nextExpression = expression.getExpression()
-  const nextExpressionResult = getAttrs(nextExpression)
+  const nextExpressionResult = getAttrsArgs(nextExpression)
   if (nextExpressionResult) {
     result = [...nextExpressionResult]
   }
