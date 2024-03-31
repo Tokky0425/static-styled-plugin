@@ -12,7 +12,7 @@
     "build": "tsc",
     "test": "vitest run"
   },
-  "keywords": [],
+  "keywords": ["static-styled-plugin", "styled-components", "react"],
   "author": "Tokky0425",
   "license": "MIT",
   "files": [
