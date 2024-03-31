@@ -1,6 +1,8 @@
 import {
+  ArrowFunction,
   CallExpression,
   Node,
+  ObjectLiteralExpression,
   PropertyAccessExpression,
   SourceFile,
   SyntaxKind,
@@ -56,18 +58,19 @@ export function compileStyledFunction(
     styleRegistry.addRule(classNameHash, compiledCssString)
 
     const attrsDeclaration = attrs
-      .map((attrs, index) => `const attrs${index} = ${attrs.text}`)
+      .map((attrs, index) => `const attrs${index} = ${attrs.getText()}`)
       .join('\n')
     const attrsProps = attrs
       .map((attrs, index) => {
-        switch (attrs.nodeKindName) {
+        switch (attrs.getKindName()) {
           case 'ArrowFunction':
             return `...attrs${index}(props)`
           case 'ObjectLiteralExpression':
             return `...attrs${index}`
           default: {
-            const neverValue: never = attrs.nodeKindName
-            throw new Error(`${neverValue}`)
+            throw new Error(
+              'attrs only accepts ArrowFunction or ObjectLiteralExpression.',
+            )
           }
         }
       })
@@ -111,7 +114,7 @@ type ParseNodeResult = {
   componentName: string | null
   htmlTagName: string | null
   cssString: string
-  attrs: GetAttrsResult[]
+  attrs: AttrsArg[]
   shouldUseClient: boolean
 }
 const defaultParseNodeResult: ParseNodeResult = {
@@ -232,13 +235,9 @@ export function getStyledFuncArg(
   return null
 }
 
-type GetAttrsResult = {
-  nodeKindName: 'ArrowFunction' | 'ObjectLiteralExpression'
-  text: string
-}
-
-export function getAttrs(node: Node): GetAttrsResult[] {
-  let result: GetAttrsResult[] = []
+type AttrsArg = ArrowFunction | ObjectLiteralExpression
+export function getAttrs(node: Node): AttrsArg[] {
+  let result: AttrsArg[] = []
 
   if (!Node.isCallExpression(node)) return result
   const expression = node.getExpression()
@@ -259,22 +258,11 @@ export function getAttrs(node: Node): GetAttrsResult[] {
   }
 
   const argument = node.getArguments()[0]
-  if (Node.isArrowFunction(argument)) {
-    return [
-      ...result,
-      {
-        nodeKindName: 'ArrowFunction' as const,
-        text: argument.getFullText(),
-      },
-    ]
-  } else if (Node.isObjectLiteralExpression(argument)) {
-    return [
-      ...result,
-      {
-        nodeKindName: 'ObjectLiteralExpression' as const,
-        text: argument.getFullText(),
-      },
-    ]
+  if (
+    Node.isArrowFunction(argument) ||
+    Node.isObjectLiteralExpression(argument)
+  ) {
+    return [...result, argument]
   } else {
     throw new Error('unexpected expression for attrs')
   }
