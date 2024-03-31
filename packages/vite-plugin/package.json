@@ -1,6 +1,6 @@
 {
   "name": "@static-styled-plugin/vite-plugin",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A plugin that makes styled-components zero-runtime.",
   "repository": {
     "type": "git",
@@ -11,7 +11,12 @@
     "dev": "tsc -w",
     "build": "tsc"
   },
-  "keywords": ["static-styled-plugin", "styled-components", "react", "vite"],
+  "keywords": [
+    "static-styled-plugin",
+    "styled-components",
+    "react",
+    "vite"
+  ],
   "author": "Tokky0425",
   "license": "MIT",
   "files": [

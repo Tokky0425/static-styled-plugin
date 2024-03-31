@@ -3,9 +3,9 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [],
+  "linked": [["@static-styled-plugin/*"]],
   "access": "public",
   "baseBranch": "master",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["next", "next-pages-dir", "vite", "webpack"]
 }

@@ -1,5 +1,11 @@
 # @static-styled-plugin/compiler
 
+## 0.2.0
+
+### Minor Changes
+
+- as API for styled-components is now supported.
+
 ## 0.1.2
 
 ### Patch Changes
