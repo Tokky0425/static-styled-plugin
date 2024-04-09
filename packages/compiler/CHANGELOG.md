@@ -1,5 +1,11 @@
 # @static-styled-plugin/compiler
 
+## 0.3.0
+
+### Minor Changes
+
+- f4e4595: Support component extension by styled API
+
 ## 0.2.0
 
 ### Minor Changes

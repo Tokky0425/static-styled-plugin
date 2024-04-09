@@ -1,5 +1,16 @@
 # @static-styled-plugin/next-plugin
 
+## 0.3.0
+
+### Minor Changes
+
+- f4e4595: Support component extension by styled API
+
+### Patch Changes
+
+- Updated dependencies [f4e4595]
+  - @static-styled-plugin/webpack-plugin@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
