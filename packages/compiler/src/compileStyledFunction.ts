@@ -210,6 +210,8 @@ function parseIdentifier(
 ) {
   const definitionNodes = node.getDefinitionNodes()
   const definitionNode: Node | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
+  if (!definitionNode) return defaultParseNodeResultWithUseClient
+
   const variableDeclarationNode = Node.isVariableDeclaration(definitionNode)
     ? definitionNode
     : definitionNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)
@@ -221,6 +223,23 @@ function parseIdentifier(
       const result = parseNode(initializer, evaluator, styledFunctionName)
       if (result.success) {
         return result
+      } else {
+        // if it is declared with `styled` function, but is not parsable, stop parsing the current node and let it work as a general styled-component
+        let possiblyStyledFunctionNode: Node | null = initializer
+        if (Node.isTaggedTemplateExpression(initializer)) {
+          /* styled.p`` */
+          possiblyStyledFunctionNode = initializer.getTag()
+        }
+        // TODO: maybe support call expression
+        // if (Node.isCallExpression(initializer)) {
+        //   /* styled.p() */
+        //   possiblyStyledFunctionNode = initializer.getExpression()
+        // }
+        if (
+          possiblyStyledFunctionNode &&
+          getStyledExpression(possiblyStyledFunctionNode, styledFunctionName)
+        )
+          return defaultParseNodeResultWithUseClient
       }
     }
   }
