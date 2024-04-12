@@ -1,5 +1,15 @@
 # @static-styled-plugin/webpack-plugin
 
+## 0.3.1
+
+### Patch Changes
+
+- 5af7323: encode "!" character for webpack plugin
+- 9807f56: when styled call takes unparsable styled-component, render it as a general styled-component
+- Updated dependencies [5af7323]
+- Updated dependencies [9807f56]
+  - @static-styled-plugin/compiler@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
