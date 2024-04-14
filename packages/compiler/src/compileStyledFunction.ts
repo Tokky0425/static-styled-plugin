@@ -104,16 +104,14 @@ export function compileStyledFunction(
     const preventForwardingByStaticStyled = isNonStyledComponentExtended
       ? ' $preventForwardingByStaticStyled={!!as}'
       : ''
-    const replaceText = `
-    (props: any) => {
-      ${attrsDeclaration}
-      const attrsProps = { ${attrsProps} } as any
-      const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
-      const Tag = ${TagName}
-      const joinedClassName = [$preventForwardingByStaticStyled ? '' : '${classNamesByStaticStyled}', attrsProps.className, props.className].filter(Boolean).join(' ')
-      return <Tag { ...rest } className={joinedClassName}${as}${preventForwardingByStaticStyled} />;
-    }
-  `
+    const replaceText = `(props: any) => {
+  ${attrsDeclaration}
+  const attrsProps = { ${attrsProps} } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = ${TagName}
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : '${classNamesByStaticStyled}', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName}${as}${preventForwardingByStaticStyled} />;
+}`
 
     replaceTargetMeta.push({
       node,
@@ -210,37 +208,35 @@ function parseIdentifier(
 ) {
   const definitionNodes = node.getDefinitionNodes()
   const definitionNode: Node | undefined = definitionNodes[0] // TODO [0] might cause unexpected behavior when number of definitionNodes are more than 1
-  if (!definitionNode) return defaultParseNodeResultWithUseClient
 
   const variableDeclarationNode = Node.isVariableDeclaration(definitionNode)
     ? definitionNode
     : definitionNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)
+  if (!variableDeclarationNode) return defaultParseNodeResultWithUseClient
 
-  if (variableDeclarationNode) {
-    const initializer = variableDeclarationNode.getInitializer()
-    if (initializer) {
-      // `result.success` should be true only when the node is SomeComponent declared with `styled` function
-      const result = parseNode(initializer, evaluator, styledFunctionName)
-      if (result.success) {
-        return result
-      } else {
-        // if it is declared with `styled` function, but is not parsable, stop parsing the current node and let it work as a general styled-component
-        let possiblyStyledFunctionNode: Node | null = initializer
-        if (Node.isTaggedTemplateExpression(initializer)) {
-          /* styled.p`` */
-          possiblyStyledFunctionNode = initializer.getTag()
-        }
-        // TODO: maybe support call expression
-        // if (Node.isCallExpression(initializer)) {
-        //   /* styled.p() */
-        //   possiblyStyledFunctionNode = initializer.getExpression()
-        // }
-        if (
-          possiblyStyledFunctionNode &&
-          getStyledExpression(possiblyStyledFunctionNode, styledFunctionName)
-        )
-          return defaultParseNodeResultWithUseClient
+  const initializer = variableDeclarationNode.getInitializer()
+  if (initializer) {
+    // `result.success` should be true only when the node is SomeComponent declared with `styled` function
+    const result = parseNode(initializer, evaluator, styledFunctionName)
+    if (result.success) {
+      return result
+    } else {
+      // if it is declared with `styled` function, but is not parsable, stop parsing the current node and let it work as a general styled-component
+      let possiblyStyledFunctionNode: Node | null = initializer
+      if (Node.isTaggedTemplateExpression(initializer)) {
+        /* styled.p`` */
+        possiblyStyledFunctionNode = initializer.getTag()
       }
+      // TODO: maybe support call expression
+      // if (Node.isCallExpression(initializer)) {
+      //   /* styled.p() */
+      //   possiblyStyledFunctionNode = initializer.getExpression()
+      // }
+      if (
+        possiblyStyledFunctionNode &&
+        getStyledExpression(possiblyStyledFunctionNode, styledFunctionName)
+      )
+        return defaultParseNodeResultWithUseClient
     }
   }
 
