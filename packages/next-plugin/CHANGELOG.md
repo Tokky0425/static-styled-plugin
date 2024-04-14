@@ -1,5 +1,13 @@
 # @static-styled-plugin/next-plugin
 
+## 0.3.2
+
+### Patch Changes
+
+- a7a32f3: Fix an unexpected behavior for compileStyledFunction when the definition node was not found
+- Updated dependencies [a7a32f3]
+  - @static-styled-plugin/webpack-plugin@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
