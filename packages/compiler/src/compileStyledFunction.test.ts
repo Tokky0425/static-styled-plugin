@@ -7,6 +7,7 @@ import {
   PropertyAccessExpression,
 } from 'ts-morph'
 import {
+  compileStyledFunction,
   getAttrsArgs,
   getStyledExpression,
   getStyledFuncArg,
@@ -15,7 +16,7 @@ import {
 const project = new Project()
 
 const getLastNodeByName = (value: string, targetName: string): Node => {
-  const file = project.createSourceFile('virtual.ts', value, {
+  const file = project.createSourceFile('virtual.tsx', value, {
     overwrite: true,
   })
   const nodes = file.getDescendants()
@@ -29,6 +30,230 @@ const getLastNodeByName = (value: string, targetName: string): Node => {
 
   return node as Node
 }
+
+describe('compileStyledFunction', () => {
+  test('styled with parsable css', () => {
+    const value = `
+const Text = styled.p\`
+  color: red;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const expected = `
+const Text = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'eTSWxy', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}`
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('styled with parsable css with variables', () => {
+    const value = `
+const color = 'red'
+const Text = styled.p\`
+  color: \${color};
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const expected = `
+const color = 'red'
+const Text = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'eIjkTb', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}`
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('styled with unparsable css', () => {
+    const value = `
+const SomeText = styled.p<{ color: string }>\`
+  color: \${({ color }) => color};
+\`;`
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(true)
+    expect(file.getFullText()).toBe(value)
+  })
+
+  test('styled with unparsable html tag', () => {
+    const value = `
+const SomeText = styled.foo<{ color: string }>\`
+  color: red;
+\`;`
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(true)
+    expect(file.getFullText()).toBe(value)
+  })
+
+  test('styled with attrs', () => {
+    const value = `
+const Text = styled.p.attrs({ foo: "bar" })\`
+  color: red;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const expected = `
+const Text = (props: any) => {
+  const attrs0 = { foo: "bar" }
+  const attrsProps = { ...attrs0 } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'eTSWxy', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}`
+
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('styled with parsable styled-components extension', () => {
+    const value = `
+const RedText = styled.p\`
+  color: red;
+\`
+const BlueText = styled(RedText)\`
+  color: blue;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const expected = `
+const RedText = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'eTSWxy', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}
+const BlueText = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'ckfFBv', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}`
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('styled with unparsable styled-components extension', () => {
+    const value = `
+const SomeText = styled.p<{ color: string }>\`
+  color: \${({ color }) => color};
+\`
+const BlueText = styled(SomeText)\`
+  color: blue;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(true)
+    expect(file.getFullText()).toBe(value)
+  })
+
+  test('styled with non-styled-components extension', () => {
+    const value = `
+const SomeText = (props: any) => <p {...props}/>
+const ExtendedText = styled(SomeText)\`
+  color: blue;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+
+    const expected = `
+const SomeText = (props: any) => <p {...props}/>
+const ExtendedText = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = SomeText
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'ezvRVm', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} as={as || forwardedAs} $preventForwardingByStaticStyled={!!as} />;
+}`
+
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('styled with unknown component extension', () => {
+    const value = `
+import { SomeText } from 'maybe-some-node-module'
+const ExtendedText = styled(SomeText)\`
+  color: blue;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(true)
+    expect(file.getFullText()).toBe(value)
+  })
+
+  test('styled with with dev mode', () => {
+    const value = `
+const Text = styled.p\`
+  color: red;
+\``
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const expected = `
+const Text = (props: any) => {
+  
+  const attrsProps = {  } as any
+  const { as, forwardedAs, $preventForwardingByStaticStyled, ...rest } = { ...props, ...attrsProps } as any
+  const Tag = as || 'p'
+  const joinedClassName = [$preventForwardingByStaticStyled ? '' : 'virtual__Text-ss ss-eTSWxy', attrsProps.className, props.className].filter(Boolean).join(' ')
+  return <Tag { ...rest } className={joinedClassName} />;
+}`
+
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css', {
+      devMode: true,
+    })
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(expected)
+  })
+
+  test('no compile target exists', () => {
+    const value = `
+const SomeText = 'foo';`
+    const file = project.createSourceFile('virtual.tsx', value, {
+      overwrite: true,
+    })
+    const shouldUseClient = compileStyledFunction(file, 'styled', 'css')
+    expect(shouldUseClient).toBe(false)
+    expect(file.getFullText()).toBe(value)
+  })
+})
 
 describe('getStyledExpression', () => {
   test('styled.p', () => {
@@ -131,7 +356,7 @@ describe('getStyledFuncArg', () => {
 
 describe('getAttrsArgs', () => {
   const getTargetNode = (code: string) => {
-    const file = project.createSourceFile('virtual.ts', code, {
+    const file = project.createSourceFile('virtual.tsx', code, {
       overwrite: true,
     })
     const nodes = file.getDescendantsOfKind(SyntaxKind.TaggedTemplateExpression)
