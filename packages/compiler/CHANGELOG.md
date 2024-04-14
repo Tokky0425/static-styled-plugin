@@ -1,5 +1,11 @@
 # @static-styled-plugin/compiler
 
+## 0.3.2
+
+### Patch Changes
+
+- a7a32f3: Fix an unexpected behavior for compileStyledFunction when the definition node was not found
+
 ## 0.3.1
 
 ### Patch Changes
